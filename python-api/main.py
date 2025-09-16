@@ -11,9 +11,10 @@ df_raw = load_data_from_db()
 df_processed = DataTransformer().preprocess(df_raw)
 
 df_for_validation = df_processed.groupby('SKU').apply(
-        lambda group: group[['Data', 'Quantidade']].rename(columns={
+        lambda group: group[['SKU', 'Data', 'Quantidade']].rename(columns={
             'Data': 'ds',
-            'Quantidade': 'y'
+            'Quantidade': 'y',
+            'SKU' : 'sku'
         }).reset_index(drop=True)
     ).reset_index(drop=True)
 
@@ -26,14 +27,18 @@ def test_holiday():
     print(get_brazil_holidays().head(40))
 
 def wmape_validation():
-    results = ValidationService.wmape_monthly_cv(df_for_validation, initial_months=24, horizon_months=6, period_months=3)
-    if results and results['wmape']:
-        print("📊 RESUMO ESTATÍSTICO:")
-        print(f"WMAPE médio: {np.mean(results['wmape']):.2f}% ± {np.std(results['wmape']):.2f}%")
-        print(f"WMAPE mínimo: {np.min(results['wmape']):.2f}%")
-        print(f"WMAPE máximo: {np.max(results['wmape']):.2f}%")
-        print(f"MAE médio: {np.mean(results['mae']):.2f}")
-        print(f"RMSE médio: {np.mean(results['rmse']):.2f}")
+    results = ValidationService.wmape_individual_sku(
+        df_for_validation,
+        "84110001",
+        initial_months=24, 
+        horizon_months=12, 
+        period_months=3
+    )
+
+    if results:
+        print(f"WMAPE médio: {results['wmape_medio']:.2f}%")
+        for fold in results['folds']:
+            print(f"Fold {fold['fold']}: {fold['wmape']:.2f}%")
 
 if __name__ == "__main__":
     wmape_validation()

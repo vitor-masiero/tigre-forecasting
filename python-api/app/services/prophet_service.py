@@ -24,7 +24,7 @@ class ProphetService:
 
         #prophet_df = df_prophet.rename(columns={
         #    'Data': 'ds',
-        #    'Quantidade': 'y'
+        #   'Quantidade': 'y'
         #})
 
         print(f"📊 Dados preparados: {len(prophet_df)} pontos de dados")
@@ -45,6 +45,10 @@ class ProphetService:
 
         future = model.make_future_dataframe(periods=periods, freq='MS')
         forecast = model.predict(future)
+
+        forecast['yhat'] = forecast['yhat'].clip(lower=0)
+        forecast['yhat_lower'] = forecast['yhat_lower'].clip(lower=0)
+        forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=0)
 
         return forecast
 
