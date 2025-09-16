@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import timedelta
 from dateutil.easter import easter
 
-def get_brazil_holidays(start_year=2020, end_year=2030):
+def get_brazil_holidays(start_year=2022, end_year=2030):
     """
     Gera DataFrame de feriados brasileiros p/ Prophet 
     (incluindo janelas para feriadões).

@@ -3,48 +3,50 @@ import pandas as pd
 import numpy as np
 from app.utils.holiday import get_brazil_holidays
 
-#Tabelas de Feriados Brasileiros (Faltando Carnaval)
 br_holidays = get_brazil_holidays()
 
-def make_prediction(df, sku=None):
-    
-    if sku is not None:
-        df_filtered = df[df['SKU'] == sku].copy()
-        if df_filtered.empty:
-            raise ValueError(f"SKU '{sku}' não encontrado nos dados")
-        print(f"Fazendo previsão para SKU: {sku}")
-    else:
-        df_filtered = df.copy()
-        print("Fazendo previsão para todos os SKUs")
+class ProphetService:
+    #Tabelas de Feriados Brasileiros
 
-    
-    df_prophet = df_filtered[['Data', 'Quantidade']].copy()
+    def make_prediction(df, sku=None, periods=12):
+        
+        if sku is not None:
+            df_filtered = df[df['SKU'] == sku].copy()
+            if df_filtered.empty:
+                raise ValueError(f"SKU '{sku}' não encontrado nos dados")
+            print(f"Fazendo previsão para SKU: {sku}")
+        else:
+            df_filtered = df.copy()
+            print("Fazendo previsão para todos os SKUs")
 
-    prophet_df = df_prophet.rename(columns={
-        'Data': 'ds',
-        'Quantidade': 'y'
-    })
+        
+        prophet_df = df_filtered[['ds', 'y']].copy()
 
-    print(f"📊 Dados preparados: {len(prophet_df)} pontos de dados")
+        #prophet_df = df_prophet.rename(columns={
+        #    'Data': 'ds',
+        #    'Quantidade': 'y'
+        #})
 
-    model = Prophet(
-        yearly_seasonality=True,
-        weekly_seasonality=False,
-        daily_seasonality=False,
-        seasonality_mode="multiplicative",
-        changepoint_prior_scale=0.05,
-        holidays=br_holidays
-    )
+        print(f"📊 Dados preparados: {len(prophet_df)} pontos de dados")
 
-    if len(prophet_df) >= 24:
-        model.add_seasonality(name='monthly', period=12, fourier_order=5)
-    
-    model.fit(prophet_df)
+        model = Prophet(
+            yearly_seasonality=True,
+            weekly_seasonality=False,
+            daily_seasonality=False,
+            seasonality_mode="multiplicative",
+            changepoint_prior_scale=0.05,
+            holidays=br_holidays
+        )
 
-    future = model.make_future_dataframe(periods=12, freq='MS')
-    forecast = model.predict(future)
+        if len(prophet_df) >= 24:
+            model.add_seasonality(name='monthly', period=periods, fourier_order=5)
+        
+        model.fit(prophet_df)
 
-    return forecast
+        future = model.make_future_dataframe(periods=periods, freq='MS')
+        forecast = model.predict(future)
+
+        return forecast
 
 def inverse_log_transform(forecast):
     """

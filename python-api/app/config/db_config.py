@@ -10,7 +10,8 @@ db_config = {
     "database": "neondb"
 }
 
-def load_data_from_db(query="SELECT * FROM tbdadosbruto;"):
+def load_data_from_db(query="SELECT cdfamilia, cdproduto, cdprocesso, periodo, valor FROM tbdadosbruto WHERE cdproduto = '84110001' AND periodo BETWEEN '2022-08-01' AND '2025-07-01' ORDER BY periodo;"):
+
     """
     Carrega dados do banco de dados PostgreSQL.
     
