@@ -2,7 +2,7 @@ package com.tigre.Tigre.dto;
 
 import com.tigre.Tigre.enumeration.TigrePerfil;
 
-public record UserDTO(
+public record UserRequestDTO(
         String name,
         String email,
         String password,
