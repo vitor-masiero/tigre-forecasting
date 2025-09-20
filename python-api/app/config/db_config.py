@@ -1,73 +1,50 @@
 import pandas as pd
 from sqlalchemy import create_engine
+from contextlib import contextmanager
+from sqlalchemy.ext.declarative import declarative_base
 
-# --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
-db_config = {
-    "user": "neondb_owner",
-    "password": "npg_aTf3l2ZjBkvt",
-    "host": "ep-soft-pond-aceqyd5s-pooler.sa-east-1.aws.neon.tech",
-    "port": "5432",
-    "database": "neondb"
-}
+Base = declarative_base()
 
-def load_data_from_db(query="SELECT cdfamilia, cdproduto, cdprocesso, periodo, valor FROM tbdadosbruto WHERE periodo BETWEEN '2022-08-01' AND '2025-07-01' ORDER BY periodo;"):
-
-    """
-    Carrega dados do banco de dados PostgreSQL.
+class DatabaseConfig:
     
-    Args:
-        query (str): Query SQL para executar. Default carrega todos os dados da tabela tbdadosbruto.
-    
-    Returns:
-        pd.DataFrame: DataFrame com os dados carregados
-        
-    Raises:
-        Exception: Se houver erro na conexão ou execução da query
-    """
-    try:
-        # Criar a string de conexão
-        connection_uri = f"postgresql://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}"
-        
-        # Criar engine de conexão
-        engine = create_engine(connection_uri)
-        
-        print("Conectando ao banco de dados...")
-        print("Executando a query e carregando dados para o DataFrame...")
-        
-        # Executar query e carregar dados
-        df = pd.read_sql_query(query, engine)
-        
-        print(f"✅ Dados carregados com sucesso! DataFrame tem {df.shape[0]} linhas e {df.shape[1]} colunas.")
-        
-        return df
-        
-    except Exception as error:
-        print(f"❌ Erro ao carregar dados: {error}")
-        raise error
+    # --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
+    DB_CONFIG = {
+        "user": "neondb_owner",
+        "password": "npg_aTf3l2ZjBkvt",
+        "host": "ep-soft-pond-aceqyd5s-pooler.sa-east-1.aws.neon.tech",
+        "port": "5432",
+        "database": "neondb"
+    }
 
-# Função para visualizar amostra dos dados
-def preview_data(df, n_rows=5):
-    """
-    Exibe uma prévia dos dados carregados.
-    
-    Args:
-        df (pd.DataFrame): DataFrame para visualizar
-        n_rows (int): Número de linhas para mostrar
-    """
-    print(f"\n📊 Primeiras {n_rows} linhas do DataFrame:")
-    print(df.head(n_rows))
-    
-    print(f"\n📈 Informações do DataFrame:")
-    print(f"- Dimensões: {df.shape[0]} linhas x {df.shape[1]} colunas")
-    print(f"- Colunas: {list(df.columns)}")
-    print(f"- Tipos de dados:")
-    for col, dtype in df.dtypes.items():
-        print(f"  • {col}: {dtype}")
+    @classmethod
+    def get_connection_string(cls):
+        """Retorna a string de conexão do banco de dados"""
+        return f"postgresql://{cls.DB_CONFIG['user']}:{cls.DB_CONFIG['password']}@{cls.DB_CONFIG['host']}:{cls.DB_CONFIG['port']}/{cls.DB_CONFIG['database']}"
 
-# Código de teste (executado apenas se o arquivo for rodado diretamente)
-if __name__ == "__main__":
-    try:
-        df = load_data_from_db()
-        preview_data(df)
-    except Exception as e:
-        print(f"Falha no teste: {e}")
+    @classmethod
+    @contextmanager
+    def get_db_connection(cls):
+        engine = None
+        try:
+            connection_string = cls.get_connection_string()
+            engine = create_engine(connection_string)
+            yield engine
+        except Exception as error:
+            print(f"❌ Erro na conexão com o banco: {error}")
+            raise error
+        finally:
+            if engine:
+                engine.dispose()
+
+    @classmethod
+    def load_data_from_db(cls, query):
+        try:
+            with cls.get_db_connection() as engine:
+                df = pd.read_sql_query(query, engine)
+                
+            print(f"✅ Dados carregados com sucesso! DataFrame tem {df.shape[0]} linhas e {df.shape[1]} colunas.")
+            return df
+            
+        except Exception as error:
+            print(f"❌ Erro ao carregar dados: {error}")
+            raise error
