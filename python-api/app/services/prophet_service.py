@@ -6,8 +6,6 @@ from app.utils.holiday import get_brazil_holidays
 br_holidays = get_brazil_holidays()
 
 class ProphetService:
-    #Tabelas de Feriados Brasileiros
-
     def make_prediction(df, sku=None, periods=12):
         
         if sku is not None:
@@ -20,14 +18,14 @@ class ProphetService:
             print("Fazendo previsão para todos os SKUs")
 
         
-        prophet_df = df_filtered[['ds', 'y']].copy()
+        df_filtered = df_filtered[['Data', 'Quantidade']].copy()
 
-        #prophet_df = df_prophet.rename(columns={
-        #    'Data': 'ds',
-        #   'Quantidade': 'y'
-        #})
+        df_prophet = df_filtered.rename(columns={
+            'Data': 'ds',
+           'Quantidade': 'y'
+        })
 
-        print(f"📊 Dados preparados: {len(prophet_df)} pontos de dados")
+        print(f"📊 Dados preparados: {len(df_prophet)} pontos de dados")
 
         model = Prophet(
             yearly_seasonality=True,
@@ -38,10 +36,10 @@ class ProphetService:
             holidays=br_holidays
         )
 
-        if len(prophet_df) >= 24:
+        if len(df_prophet) >= 24:
             model.add_seasonality(name='monthly', period=periods, fourier_order=5)
         
-        model.fit(prophet_df)
+        model.fit(df_prophet)
 
         future = model.make_future_dataframe(periods=periods, freq='MS')
         forecast = model.predict(future)
@@ -51,6 +49,36 @@ class ProphetService:
         forecast['yhat_upper'] = forecast['yhat_upper'].clip(lower=0)
 
         return forecast
+    
+    def predict_all_skus(df, periods=12):
+        #Lista de SKUs únicos em ordem crescente
+        skus = np.sort(df['SKU'].unique())
+        print(f"Iniciando as previsões para {len(skus)} SKUs")
+        
+        forecasts = {}
+        failed_skus = []
+        
+        # Loop para prever SKU a SKU
+        for i, sku in enumerate(skus, 1):
+            try:
+                print(f"\n--- Processando SKU {i}/{len(skus)}: {sku} ---")
+                forecast = ProphetService.make_prediction(df, sku=sku, periods=periods)
+                forecasts[sku] = forecast
+            except Exception as e:
+                failed_skus.append((sku, str(e)))
+                continue  # Continuar com os demais SKUs
+        
+        # Relatório final
+        print(f"\nProcesso concluído!")
+        print(f"SKUs processados com sucesso: {len(forecasts)}")
+        print(f"SKUs com falha: {len(failed_skus)}")
+        
+        if failed_skus:
+            print("\nSKUs com falha:")
+            for sku, error in failed_skus:
+                print(f"  - {sku}: {error}")
+        
+        return forecasts, failed_skus
 
 def inverse_log_transform(forecast):
     """

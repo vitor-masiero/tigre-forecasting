@@ -20,7 +20,7 @@ df_for_validation = df_processed.groupby('SKU').apply(
 
 def main():
     
-    df_prediction = ProphetService.make_prediction(df_processed, "84110001")
+    df_prediction = ProphetService.predict_all_skus(df_processed)
     print(df_prediction)
 
 def test_holiday():
@@ -41,5 +41,5 @@ def wmape_validation():
             print(f"Fold {fold['fold']}: {fold['wmape']:.2f}%")
 
 if __name__ == "__main__":
-    wmape_validation()
+    main()
 
