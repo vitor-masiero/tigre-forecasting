@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 class DatabaseConfig:
-    
+    Base = declarative_base()
     # --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
     DB_CONFIG = {
         "user": "neondb_owner",

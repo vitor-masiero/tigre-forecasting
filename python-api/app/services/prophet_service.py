@@ -64,6 +64,9 @@ class ProphetService:
     def predict_all_skus(self, df, periods=12):
         #Lista de SKUs únicos em ordem crescente
         skus = np.sort(df['SKU'].unique())
+        
+        run_id = self.saver.save_forecast_run("Prophet", len(skus), None)
+
         print(f"Iniciando as previsões para {len(skus)} SKUs")
         
         forecasts = {}
@@ -89,7 +92,7 @@ class ProphetService:
             for sku, error in failed_skus:
                 print(f"  - {sku}: {error}")
 
-        run_id = self.saver.save_forecast_run("Prophet", len(skus), None)
+        
         
         return run_id, failed_skus
 
