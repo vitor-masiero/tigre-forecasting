@@ -50,7 +50,7 @@ class ProphetService:
         
         model.fit(df_prophet)
 
-        future = model.make_future_dataframe(periods=periods, freq='MS')
+        future = model.make_future_dataframe(periods=periods, freq='MS', include_history=False)
         forecast = model.predict(future)
 
         forecast['yhat'] = forecast['yhat'].clip(lower=0)
