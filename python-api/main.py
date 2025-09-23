@@ -1,4 +1,3 @@
-
 from app.data_processing.transformer import DataTransformer
 from app.services.prophet_service import ProphetService
 from app.utils.holiday import get_brazil_holidays
@@ -13,9 +12,10 @@ df_processed = DataTransformer().preprocess(
 )
 
 def main():
-    df_prediction = ProphetService.predict_all_skus(
-        df_processed, periods=12
+    df_prediction = ProphetService.make_prediction(
+        df_processed, periods=12, sku="84110001"
     )
+    
     print(df_prediction)
 
 def test_holiday():
@@ -36,16 +36,4 @@ def wmape_validation():
             print(f"Fold {fold['fold']}: {fold['wmape']:.2f}%")
 
 if __name__ == "__main__":
-    from app.config.db_config import Base
-    from app.config.db_config import DatabaseConfig
-    
-    from app.models.previsao import Previsao
-    from app.models.sku import Sku
-    from app.models.ponto_previsao import PontosPrevisao
-
-    with DatabaseConfig.get_db_connection() as engine:
-        Base.metadata.create_all(engine)
-        inspector = sqlalchemy.inspect(engine)
-        tables = inspector.get_table_names()
-        print("Tabelas no banco:", tables)
-
+    main()
