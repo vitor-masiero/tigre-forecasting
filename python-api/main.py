@@ -3,6 +3,7 @@ from app.services.prophet_service import ProphetService
 from app.utils.holiday import get_brazil_holidays
 from app.services.validation_service import ValidationService
 from app.repository.query_repository import QueryRepository
+from app.config.db_config import DatabaseConfig
 import pandas as pd
 import numpy as np
 import sqlalchemy
@@ -12,11 +13,17 @@ df_processed = DataTransformer().preprocess(
 )
 
 def main():
-    df_prediction = ProphetService.make_prediction(
-        df_processed, periods=12, sku="84110001"
-    )
-    
-    print(df_prediction)
+    # Criar sessão do banco
+    with DatabaseConfig.get_db_session() as db_session:
+        # Instanciar o service com a sessão
+        prophet_service = ProphetService(db_session)
+
+        run_id, df_prediction = prophet_service.predict_all_skus(
+            df_processed, periods=12, 
+        )
+
+        print(f"Run ID: {run_id}")
+        print(df_prediction)
 
 def test_holiday():
     print(get_brazil_holidays().head(40))

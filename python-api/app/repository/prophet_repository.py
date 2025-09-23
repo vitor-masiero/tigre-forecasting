@@ -1,4 +1,4 @@
-from torch import ne
+
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 import uuid
@@ -18,7 +18,7 @@ class ProphetRepository:
         try:
             new_run = Previsao(
                 id_previsao=str(uuid.uuid4()),
-                dt_processamento=datetime.now(),
+                dt_processamento=datetime.datetime.now(),
                 ds_modelo=model,
                 qtd_total_skus=total_skus,
                 num_wmape=wmape
@@ -33,7 +33,7 @@ class ProphetRepository:
             raise e
         
         
-    def save_forecast_points(self, forecast_df: pd.DataFrame, run_id: str) -> Dict[str, int]:
+    def save_forecast_points(self, forecast_df: pd.DataFrame, run_id: str, sku: str) -> Dict[str, int]:
         try:
             saved_count = 0
             error_count = 0
@@ -42,17 +42,17 @@ class ProphetRepository:
                 try:
                     ponto_previsao = PontosPrevisao(
                         id_previsao=run_id,
-                        cd_sku=row['cd_sku'],
+                        cd_sku=sku,
                         dt_previsao=row['ds'],
                         data_gerado=datetime.now(),
-                        num_horizonte=row.get('horizon', 0),
+                        num_horizonte=forecast_df.groupby(sku).cumcount() + 1,
                         num_valor_estimado=float(row['yhat']),
                         num_valor_inferior=float(row.get('yhat_lower', 0)) if pd.notna(row.get('yhat_lower')) else None,
                         num_valor_superior=float(row.get('yhat_upper', 0)) if pd.notna(row.get('yhat_upper')) else None,
-                        dt_inicio_treino=row.get('train_start'),
-                        dt_fim_treino=row.get('train_end'),
-                        qtd_meses_treino=row.get('train_rows'),
-                        ds_modelo=row.get('model_version')
+                        dt_inicio_treino=None,
+                        dt_fim_treino=None,
+                        qtd_meses_treino=None,
+                        ds_modelo="Prophet"
                     )
                     
                     self.db.add(ponto_previsao)

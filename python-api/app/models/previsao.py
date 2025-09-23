@@ -16,4 +16,4 @@ class Previsao(Base):
     qtd_total_skus = Column(Integer, nullable=False)
     num_wmape = Column(String, nullable=True)
 
-    pontos_previsao = relationship("TbPontosPrevisao", back_populates="previsao")
+    pontos_previsao = relationship("PontosPrevisao", back_populates="previsao")
