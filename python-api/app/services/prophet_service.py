@@ -78,6 +78,7 @@ class ProphetService:
                 print(f"\n--- Processando SKU {i}/{len(skus)}: {sku} ---")
                 forecast = ProphetService.make_prediction(self, df, sku=sku, periods=periods)
                 forecasts[sku] = forecast
+                
             except Exception as e:
                 failed_skus.append((sku, str(e)))
                 continue  # Continuar com os demais SKUs
