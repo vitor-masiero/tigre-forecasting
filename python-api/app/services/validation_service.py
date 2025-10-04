@@ -5,8 +5,8 @@ from prophet.diagnostics import cross_validation, performance_metrics
 
 
 class ValidationService:
-    def cv_sku():
-        df_prophet = QueryRepository.get_unique_sku(sku="84110165")
+    def cv_sku(sku=None):
+        df_prophet = QueryRepository.get_unique_sku(sku=sku)
         df_prophet = df_prophet[["periodo", "valor"]].copy()
 
         model = Prophet(

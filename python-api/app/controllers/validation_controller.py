@@ -1,3 +1,4 @@
+from app.schemas.validation import IndividualValidationRequest
 from app.services.validation_service import ValidationService
 from fastapi import APIRouter
 
@@ -5,9 +6,9 @@ router = APIRouter()
 
 
 class ValidationController:
-    @router.get("/model-metrics/sku")
-    def get_model_metrics():
-        df_cv, df_metrics = ValidationService.cv_sku()
+    @router.post("/validation/individual")
+    def get_model_metrics(payload: IndividualValidationRequest):
+        df_cv, df_metrics = ValidationService.cv_sku(payload.sku)
         wmape = ValidationService.calcular_wmape(df_cv)
 
         return {
