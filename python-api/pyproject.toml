@@ -11,4 +11,5 @@ dependencies = [
     "prophet>=1.1.7",
     "psycopg2-binary>=2.9.10",
     "sqlalchemy>=2.0.43",
+    "uvicorn>=0.37.0",
 ]

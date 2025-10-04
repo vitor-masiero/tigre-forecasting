@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Integer, Numeric, Date, DateTime, Text, ForeignKey, VarChar
+from sqlalchemy import Column, Integer, Numeric, Date, DateTime, Text, ForeignKey, String as VarChar
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.config.db_config import Base  # ajuste o import conforme seu projeto
@@ -25,4 +25,3 @@ class PontosPrevisao(Base):
     ds_modelo = Column(Text, nullable=True)
 
     previsao = relationship("Previsao", back_populates="pontos_previsao")
-    sku = relationship("Sku", back_populates="pontos_previsao")

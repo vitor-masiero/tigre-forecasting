@@ -1,39 +1,49 @@
-from app.data_processing.transformer import DataTransformer
-from app.services.prophet_service import ProphetService
-from app.utils.holiday import get_brazil_holidays
-from app.services.validation_service import ValidationService
-from app.repository.query_repository import QueryRepository
-import pandas as pd
-import numpy as np
-import sqlalchemy
+# main.py
+from app.config.db_config import DatabaseConfig  # Para criar tabelas
+from app.controllers import (  # Importe seu arquivo de rotas
+    prophet_controller,
+    validation_controller,
+)
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-df_processed = DataTransformer().preprocess(
-    QueryRepository.get_all_skus()
+app = FastAPI(
+    title="Tigre Forecast API",
+    description="API para geração e gerenciamento de previsões de vendas para o segmento Predial da Tigre.",
+    version="1.0.0",
 )
 
-def main():
-    df_prediction = ProphetService.make_prediction(
-        df_processed, periods=12, sku="84110001"
-    )
-    
-    print(df_prediction)
+origins = [
+    "http://localhost",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+]
 
-def test_holiday():
-    print(get_brazil_holidays().head(40))
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-def wmape_validation():
-    results = ValidationService.wmape_individual_sku(
-        QueryRepository.get_validation_data(),
-        "84110001",
-        initial_months=24, 
-        horizon_months=12, 
-        period_months=3
-    )
+# Incluir o roteador de previsões
+app.include_router(prophet_controller.router)
+app.include_router(validation_controller.router)
 
-    if results:
-        print(f"WMAPE médio: {results['wmape_medio']:.2f}%")
-        for fold in results['folds']:
-            print(f"Fold {fold['fold']}: {fold['wmape']:.2f}%")
 
-if __name__ == "__main__":
-    main()
+# Opcional: Evento de startup para criar tabelas no banco
+@app.on_event("startup")
+def on_startup():
+    print("🚀 Iniciando aplicação...")
+
+    DatabaseConfig.Base.metadata.create_all(bind=DatabaseConfig.get_engine())
+    print("✅ Tabelas do banco de dados verificadas/criadas.")
+
+
+@app.get("/")
+async def root():
+    return {"message": "Bem-vindo à API de Previsão da Tigre!"}
+
+
+# Para rodar a aplicação, use: uvicorn main:app --reload

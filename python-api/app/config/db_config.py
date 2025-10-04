@@ -2,11 +2,11 @@ import pandas as pd
 from sqlalchemy import create_engine
 from contextlib import contextmanager
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
-
 class DatabaseConfig:
-    
+    Base = declarative_base()
     # --- 1. CONFIGURAÇÃO DO BANCO DE DADOS ---
     DB_CONFIG = {
         "user": "neondb_owner",
@@ -21,20 +21,47 @@ class DatabaseConfig:
         """Retorna a string de conexão do banco de dados"""
         return f"postgresql://{cls.DB_CONFIG['user']}:{cls.DB_CONFIG['password']}@{cls.DB_CONFIG['host']}:{cls.DB_CONFIG['port']}/{cls.DB_CONFIG['database']}"
 
+    # lazy singletons
+    _engine = None
+    _SessionLocal = None
+
+    @classmethod
+    def get_engine(cls):
+        if cls._engine is None:
+            cls._engine = create_engine(
+                cls.get_connection_string(),
+                pool_pre_ping=True,   # evita conexões "stale"
+                # echo=True  # habilite para debugging de DDL/SQL
+            )
+        return cls._engine
+
+    @classmethod
+    def get_session_factory(cls):
+        if cls._SessionLocal is None:
+            cls._SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=cls.get_engine())
+        return cls._SessionLocal
+
     @classmethod
     @contextmanager
     def get_db_connection(cls):
-        engine = None
+        """Context manager que fornece a engine (útil para read_sql etc)."""
+        engine = cls.get_engine()
         try:
-            connection_string = cls.get_connection_string()
-            engine = create_engine(connection_string)
             yield engine
-        except Exception as error:
-            print(f"❌ Erro na conexão com o banco: {error}")
-            raise error
         finally:
-            if engine:
-                engine.dispose()
+            # não dispose aqui — o engine permanece vivo para reuse
+            pass
+
+    @classmethod
+    @contextmanager
+    def get_db_session(cls):
+        """Context manager que fornece uma sessão ORM (recomendado)."""
+        SessionLocal = cls.get_session_factory()
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
     @classmethod
     def load_data_from_db(cls, query):
