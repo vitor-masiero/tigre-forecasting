@@ -57,7 +57,6 @@ class DataTransformer:
 
         # Winsorização: estamos tratando os dados e substituindo os pelos valores mínimos e máximos. Assim, conseguimos deixar a tendência padronizada.
 
-    # Função não utilizada por equanto (precisamos testar o WMAPE)
     def log_transform(self, df, quantity_col="Quantidade"):
         df = df.copy()
         df["Quantidade_log"] = np.log1p(df[quantity_col])

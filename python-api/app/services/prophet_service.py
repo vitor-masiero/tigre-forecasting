@@ -111,5 +111,4 @@ def inverse_log_transform(forecast):
     forecast_copy["yhat_lower"] = np.expm1(forecast_copy["yhat_lower"])
     forecast_copy["yhat_upper"] = np.expm1(forecast_copy["yhat_upper"])
 
-    print("✅ Previsões convertidas de volta para escala original")
     return forecast_copy
