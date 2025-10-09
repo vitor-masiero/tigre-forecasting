@@ -1,21 +1,26 @@
-import React from "react";
+import React, { useState } from "react";
 import Sidebar from "./components/Sidebar/Sidebar";
-import Header from "./components/Header/Header";
-import MetricsCards from "./components/Metrics/MetricsCards";
-import ChartsSection from "./components/Charts/ChartsSection";
-import BottomSection from "./components/Bottom/BottomSection";
+import Dashboard from "./pages/Dashboard";
+import GerarPrevisao from "./pages/GerarPrevisao";
+
 export default function App() {
+  const [currentPage, setCurrentPage] = useState("dashboard");
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case "dashboard":
+        return <Dashboard />;
+      case "gerar-previsao":
+        return <GerarPrevisao />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto">
-        <Header />
-        <div className="px-8 -mt-6 pb-8">
-          <MetricsCards />
-          <ChartsSection />
-          <BottomSection />
-        </div>
-      </div>
+      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+      {renderPage()}
     </div>
   );
 }

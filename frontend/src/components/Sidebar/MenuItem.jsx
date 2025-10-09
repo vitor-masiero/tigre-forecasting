@@ -1,7 +1,8 @@
 import React from "react";
 
-export default function MenuItem({ icon: Icon, label, active }) {
-  const baseClasses = "flex items-center gap-3 px-3 py-2 rounded-lg transition";
+export default function MenuItem({ icon: Icon, label, active, onClick }) {
+  const baseClasses =
+    "flex items-center gap-3 px-3 py-2 rounded-lg transition cursor-pointer";
   const activeClasses = active
     ? "text-blue-600 bg-blue-50"
     : "text-gray-600 hover:bg-gray-50";
@@ -47,9 +48,9 @@ export default function MenuItem({ icon: Icon, label, active }) {
   };
 
   return (
-    <a href="#" className={`${baseClasses} ${activeClasses}`}>
+    <div onClick={onClick} className={`${baseClasses} ${activeClasses}`}>
       {renderIcon()}
       <span className={active ? "font-medium" : ""}>{label}</span>
-    </a>
+    </div>
   );
 }
