@@ -1,6 +1,15 @@
 import React from "react";
 
-export default function TableHeader({ columns }) {
+export default function TableHeader() {
+  const columns = [
+    { label: "FONTE", width: "w-80" },
+    { label: "TIPO", width: "w-32" },
+    { label: "ÚLTIMA SYNC", width: "w-40" },
+    { label: "REGISTROS", width: "w-32" },
+    { label: "STATUS", width: "w-32" },
+    { label: "AÇÕES", width: "w-24" },
+  ];
+
   return (
     <thead className="bg-gray-50">
       <tr>
