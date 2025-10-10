@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Sidebar from "./components/Sidebar/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import GerarPrevisao from "./pages/GerarPrevisao";
+import Historico from "./pages/Historico";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
@@ -12,6 +13,8 @@ export default function App() {
         return <Dashboard />;
       case "gerar-previsao":
         return <GerarPrevisao />;
+      case "historico":
+        return <Historico />;
       default:
         return <Dashboard />;
     }
