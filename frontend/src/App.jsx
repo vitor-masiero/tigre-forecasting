@@ -3,6 +3,7 @@ import Sidebar from "./components/Sidebar/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import GerarPrevisao from "./pages/GerarPrevisao";
 import Historico from "./pages/Historico";
+import Automacoes from "./pages/Automacoes";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
@@ -15,6 +16,8 @@ export default function App() {
         return <GerarPrevisao />;
       case "historico":
         return <Historico />;
+      case "automacoes":
+        return <Automacoes />;
       default:
         return <Dashboard />;
     }
