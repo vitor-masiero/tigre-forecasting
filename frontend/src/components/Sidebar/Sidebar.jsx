@@ -21,8 +21,8 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
   ];
 
   const dataMenuItems = [
-    { icon: Database, label: "Fontes de Dados", page: "fontes" },
-    { icon: Upload, label: "Importar", page: "importar" },
+    { icon: Database, label: "Fontes de Dados", page: "fontes-dados" },
+    { icon: Upload, label: "Importar", page: "importar-dados" },
     { icon: FileText, label: "Relatórios", page: "relatorios" },
   ];
 
