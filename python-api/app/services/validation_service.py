@@ -98,6 +98,7 @@ class ValidationService:
         return df_cv, df_metrics, wmape
     @staticmethod
     def calcular_wmape(df_cv):
+        print('Wmape')
         """
         WMAPE = Σ|y_real - y_pred| / Σ|y_real| × 100
         """
