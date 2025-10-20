@@ -9,6 +9,7 @@ export default function Configuracoes() {
       <div className="px-8 -mt-6 pb-8">
         <UsersTable />
       </div>
+      <div></div>
     </div>
   );
 }
