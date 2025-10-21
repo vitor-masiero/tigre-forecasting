@@ -7,25 +7,51 @@ class RedirectService:
             if model is None:
                 raise ValueError("Modelo deve ser especificado quando SKU não é fornecido")
 
-        mask = df["SKU"].astype(str).str.strip() == str(sku).strip()
-        if mask.any():
-            classe_abc = df.loc[mask, "Classe_ABC"].astype(str).str.strip().str.upper()
-        else:     
-            print(f"SKU '{sku}' não encontrado na classificação")
-
+        model = (model or "").strip()
+        mask = df["SKU"].astype(str).str.strip().str.upper() == str(sku).strip().upper()
         
+        if mask.any():
+            classe_abc = (
+                df.loc[mask, "Classe_ABC"]
+                .astype(str)
+                .str.strip()
+                .str.upper()
+                .iloc[0]
+            )
+        else:
+            print(f"SKU '{sku}' não encontrado na classificação")
+            classe_abc = None 
 
-        if ((model == "Prophet") | (classe_abc == "A")).any():
+        if model: 
+            modelo_final = model
+        else:
+            if classe_abc == "A":
+                modelo_final = "Prophet"
+            elif classe_abc == "B":
+                modelo_final = "ARIMA"
+            elif classe_abc == "C":
+                modelo_final = "XGBoost"
+            else:
+                # fallback caso não haja ABC ou valor não mapeado
+                modelo_final = "Prophet"
+
+        if modelo_final == "Prophet":
             prophet_service = ProphetService(db)
-
             run_id, forecast_df, time = prophet_service.make_prediction(
                 df_processed, periods=periods, sku=sku
             )
             return run_id, forecast_df, time
 
-        elif (classe_abc == "B").any():
-            run_id, forecast_df = "modelo_b"
+        elif modelo_final == "ARIMA":
+            return None
 
-            return run_id, forecast_df
+        elif modelo_final == "XGBoost":
+            return None
+
         else:
-            return "modelo_c"
+            #fallback
+            prophet_service = ProphetService(db)
+            run_id, forecast_df, time = prophet_service.make_prediction(
+                df_processed, periods=periods, sku=sku
+            )
+            return run_id, forecast_df, time

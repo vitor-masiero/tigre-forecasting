@@ -23,9 +23,7 @@ class ProphetService:
                 raise ValueError(f"SKU '{sku}' não encontrado nos dados")
             print(f"Fazendo previsão para SKU: {sku}")
         else:
-            df_filtered = df.copy()
-            skus = np.sort(df["SKU"].unique())
-            print("Fazendo previsão para todos os SKUs")
+            raise ValueError("SKU deve ser fornecido para previsão individual")
 
         df_filtered = df_filtered[["Data", "Quantidade"]].copy()
 
