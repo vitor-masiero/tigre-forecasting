@@ -9,7 +9,7 @@ class RedirectService:
 
         model = (model or "").strip()
         mask = df["SKU"].astype(str).str.strip().str.upper() == str(sku).strip().upper()
-        
+
         if mask.any():
             classe_abc = (
                 df.loc[mask, "Classe_ABC"]
@@ -26,11 +26,11 @@ class RedirectService:
             modelo_final = model
         else:
             if classe_abc == "A":
-                modelo_final = "Prophet"
+                modelo_final = "Prophet" 
             elif classe_abc == "B":
-                modelo_final = "ARIMA"
+                modelo_final = "ARIMA" #TSB
             elif classe_abc == "C":
-                modelo_final = "XGBoost"
+                modelo_final = "XGBoost" #TSB
             else:
                 # fallback caso não haja ABC ou valor não mapeado
                 modelo_final = "Prophet"
