@@ -1,6 +1,7 @@
 import numpy as np
 from app.repository.prophet_repository import ProphetRepository
 from app.utils.holiday import get_brazil_holidays
+from app.utils.time import Time
 from prophet import Prophet
 from sqlalchemy.orm import Session
 
@@ -12,7 +13,9 @@ class ProphetService:
         self.db = db_session
         self.saver = ProphetRepository(db_session)
 
-    def make_prediction(self, df, sku=None, periods=12):
+    def make_prediction(self, df, sku=None, periods=12, time=None):
+        time = Time()
+
         if sku is not None:
             df_filtered = df[df["SKU"] == sku].copy()
             skus = [sku]
@@ -54,8 +57,9 @@ class ProphetService:
         forecast["yhat_upper"] = forecast["yhat_upper"].clip(lower=0)
 
         run_id = self.saver.save_forecast_run("Prophet", len(skus), None)
+        time = time.obter_tempo()
 
-        return run_id, forecast
+        return run_id, forecast, time
 
     def predict_all_skus(self, df, periods=12):
         # Lista de SKUs únicos em ordem crescente

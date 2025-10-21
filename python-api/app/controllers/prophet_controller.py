@@ -11,6 +11,12 @@ router = APIRouter()
 
 
 class ProphetController:
+    @router.get("/outliers")
+    def get_data(db: Session = Depends(get_db)):
+        df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
+
+        return "OK", df_processed.to_dict(orient="records")
+
     @router.post("/predict", response_model=ForecastRunResponse)
     def predict(payload: ForecastRequest, db: Session = Depends(get_db)):
         df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
@@ -19,14 +25,15 @@ class ProphetController:
             ClassificationService.somar_quantidade_por_segmento(df_processed)
         )
 
-        run_id, forecast_df = RedirectService.model_direction(
-            df_classified, df_processed, periods=payload.periods, sku=payload.sku, db=db
+        print("Redirecionando para o modelo adequado...")
+        run_id, forecast_df, time = RedirectService.model_direction(
+            df_classified, df_processed, periods=payload.periods, sku=payload.sku, db=db, model=payload.model
         )
 
         preview = forecast_df.head(payload.preview_rows).to_dict(orient="records")
 
         return ForecastRunResponse(
-            run_id=str(run_id), status="completed", preview=preview
+            run_id=str(run_id), status="completed", preview=preview, time=time
         )
 
     @router.get("/classifier")
