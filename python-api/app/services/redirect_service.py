@@ -1,57 +1,120 @@
 from app.services.prophet_service import ProphetService
+from app.services.aggregation_service import AggregationService
 
 
 class RedirectService:
-    def model_direction(df=None, df_processed=None, periods=12, sku=None, db=None, model=None):
-        if sku is None:
-            if model is None:
-                raise ValueError("Modelo deve ser especificado quando SKU não é fornecido")
+    def model_direction(
+        df=None, 
+        df_processed=None, 
+        periods=12, 
+        sku=None, 
+        db=None, 
+        model=None,
+        aggregation_type="sku",
+        familia=None,
+        processo=None,
+        abc_class=None,
+        ):
 
-        model = (model or "").strip()
-        mask = df["SKU"].astype(str).str.strip().str.upper() == str(sku).strip().upper()
+        aggregation_info = None
+        auto_selected = False
 
-        if mask.any():
-            classe_abc = (
-                df.loc[mask, "Classe_ABC"]
-                .astype(str)
-                .str.strip()
-                .str.upper()
-                .iloc[0]
-            )
-        else:
-            print(f"SKU '{sku}' não encontrado na classificação")
-            classe_abc = None 
-
-        if model: 
-            modelo_final = model
-        else:
-            if classe_abc == "A":
-                modelo_final = "Prophet" 
-            elif classe_abc == "B":
-                modelo_final = "ARIMA" #TSB
-            elif classe_abc == "C":
-                modelo_final = "XGBoost" #TSB
+        #Previsões Agregadas Não individual por SKU
+        if aggregation_type != "sku":
+            if model:
+                modelo_final = model.strip()
             else:
-                # fallback caso não haja ABC ou valor não mapeado
                 modelo_final = "Prophet"
+            
+            if aggregation_type == "familia":
+                df_aggregated, aggregation_info = AggregationService.aggregate_familia(
+                    df_processed, familia)
+            
+            elif aggregation_type == "processo":
+                df_aggregated, aggregation_info = AggregationService.aggregate_by_processo(
+                    df_processed, processo)
+            
+            elif aggregation_type == "abc":
+                if not abc_class:
+                    raise ValueError("Classe ABC deve ser especificada para agregação por ABC")
+                df_aggregated, aggregation_info = AggregationService.aggregate_by_abc(
+                    df_processed, df, abc_class
+                )
 
-        if modelo_final == "Prophet":
-            prophet_service = ProphetService(db)
-            run_id, forecast_df, time = prophet_service.make_prediction(
-                df_processed, periods=periods, sku=sku
+            elif aggregation_type == "all":
+                df_aggregated, aggregation_info = AggregationService.aggregate_all(
+                    df_processed
+                )
+            
+            elif aggregation_type == "combined":
+
+                df_aggregated, aggregation_info = AggregationService.aggregate_combined(
+                    df_processed,
+                    df_classified=df,
+                    familia=familia,
+                    processo=processo,
+                    abc_class=abc_class
+                )
+            
+            else:
+                raise ValueError(f"Tipo de agregação inválido: {aggregation_type}")
+            
+            run_id, forecast_df, time = RedirectService._execute_model(
+                modelo_final, db, df_aggregated, None, periods
             )
-            return run_id, forecast_df, time
+            
+            return run_id, forecast_df, time, aggregation_info, modelo_final, auto_selected
 
-        elif modelo_final == "ARIMA":
-            return None
-
-        elif modelo_final == "XGBoost":
-            return None
-
+        # Se não for agregado nem combinado, vai para individual
         else:
-            #fallback
+            if sku is None:
+                    raise ValueError("SKU deve ser fornecido para previsão individual")
+            
+            if model:
+                modelo_final = model.strip()
+                auto_selected = False
+            else:
+                auto_selected = True
+                mask = df["SKU"].astype(str).str.strip().str.upper() == str(sku).strip().upper()
+                
+                if mask.any():
+                    classe_abc = (
+                        df.loc[mask, "Classe_ABC"]
+                        .astype(str)
+                        .str.strip()
+                        .str.upper()
+                        .iloc[0]
+                    )
+                else:
+                    print(f"⚠️ SKU '{sku}' não encontrado na classificação ABC")
+                    classe_abc = None
+                
+                # Redireciona baseado na classe ABC
+                if classe_abc == "A":
+                    modelo_final = "Prophet"
+                elif classe_abc == "B":
+                    modelo_final = "TSB"
+                elif classe_abc == "C":
+                    modelo_final = "XGBoost"
+                else:
+                    # Fallback: se não houver ABC ou valor não mapeado
+                    modelo_final = "Prophet"
+
+            run_id, forecast_df, time = RedirectService._execute_model(
+                    modelo_final, db, df_processed, sku, periods
+                )
+            
+            return run_id, forecast_df, time, None, modelo_final, auto_selected
+    @staticmethod
+    def _execute_model(
+        model_name, db, df, sku, periods
+    ):
+        if model_name == "Prophet":
             prophet_service = ProphetService(db)
-            run_id, forecast_df, time = prophet_service.make_prediction(
-                df_processed, periods=periods, sku=sku
-            )
-            return run_id, forecast_df, time
+            return prophet_service.make_prediction(df, periods=periods, sku=sku)
+        elif model_name == "TSB":
+            return "TSB"
+        elif model_name == "XGBoost":
+            return "XGBOOST"
+        else:
+            raise ValueError(f"Modelo desconhecido: {model_name}")
