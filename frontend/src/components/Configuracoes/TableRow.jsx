@@ -1,6 +1,5 @@
 import React from 'react';
 import { useUsers } from '../../hooks/useUsers';
-import { USER_TYPES } from '../../utils/userTypes';
 import UserTypeIcon from './UserTypeIcon';
 
 export default function TableRow({ user, onEdit }) {

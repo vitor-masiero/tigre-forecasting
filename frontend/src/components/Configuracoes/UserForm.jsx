@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useUsers } from '../../hooks/useUsers';
-import { USER_TYPES, USER_CARGOS } from '../../utils/userTypes';
 
 export default function UserForm({ user, onClose }) {
   const { addUser, updateUser } = useUsers();
