@@ -10,7 +10,7 @@ export default function Step1Basic({ formData, updateFormData, nextStep }) {
 
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-6">
-          <div>
+          {/* <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3">
               Período Histórico
             </label>
@@ -21,6 +21,27 @@ export default function Step1Basic({ formData, updateFormData, nextStep }) {
                   onClick={() => updateFormData('periodoHistorico', months)}
                   className={`px-4 py-3 rounded-lg font-medium transition ${
                     formData.periodoHistorico === months
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {months} meses
+                </button>
+              ))}
+            </div>
+          </div> */}
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Horizonte de Previsão
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {['12', '18', '24', '36'].map(months => (
+                <button
+                  key={months}
+                  onClick={() => updateFormData('horizontePrevisao', months)}
+                  className={`px-4 py-3 rounded-lg font-medium transition ${
+                    formData.horizontePrevisao === months
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
@@ -62,26 +83,7 @@ export default function Step1Basic({ formData, updateFormData, nextStep }) {
           </div>
         </div>
 
-          {/* <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Horizonte de Previsão
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {['6', '12', '18', '24'].map(months => (
-                <button
-                  key={months}
-                  onClick={() => updateFormData('horizontePrevisao', months)}
-                  className={`px-4 py-3 rounded-lg font-medium transition ${
-                    formData.horizontePrevisao === months
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {months} meses
-                </button>
-              ))}
-            </div>
-          </div> */}
+
         </div >
 
         {/* <div>

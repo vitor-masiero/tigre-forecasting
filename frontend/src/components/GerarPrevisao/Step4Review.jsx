@@ -70,8 +70,8 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
     };
 
     const base = {
-      periods: Number(formData.periodoHistorico || 0),
-      preview_rows: Number(formData.periodoHistorico || 0),
+      periods: Number(formData.horizontePrevisao || 0),
+      preview_rows: Number(formData.horizontePrevisao || 0),
       model: mapModel(formData.modeloPrevisao)
     };
 
@@ -215,14 +215,14 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
             Configurações Básicas
           </h3>
           <div className="grid grid-cols-3 gap-6">
-            <div>
+            {/* <div>
               <p className="text-sm text-gray-600 mb-1">Período Histórico</p>
               <p className="text-lg font-semibold text-gray-900">{formData.periodoHistorico} meses</p>
-            </div>
-            {/* <div>
+            </div> */}
+            <div>
               <p className="text-sm text-gray-600 mb-1">Horizonte de Previsão</p>
               <p className="text-lg font-semibold text-gray-900">{formData.horizontePrevisao} meses</p>
-            </div> */}
+            </div>
             <div>
               <p className="text-sm text-gray-600 mb-1">Modelo</p>
               <p className="text-lg font-semibold text-gray-900 capitalize">{formData.modeloPrevisao}</p>

@@ -37,14 +37,14 @@ export default function Step5Result({ jsonPredict }) {
     const labels = jsonPredict.preview.map(item =>
       format(new Date(item.ds), "d 'de' MMMM 'de' yyyy", { locale: ptBR })
     );
-    const data = jsonPredict.preview.map(item => item.trend);
+    const data = jsonPredict.preview.map(item => item.yhat);
 
     const chart = new Chart(ctx, {
       type: 'line',
       data: {
         labels,
         datasets: [{
-          label: 'Tendência',
+          label: 'Previsão',
           data,
           borderColor: 'rgb(79, 70, 229)',
           backgroundColor: 'rgba(79, 70, 229, 0.1)',
@@ -60,7 +60,7 @@ export default function Step5Result({ jsonPredict }) {
           },
           title: {
             display: true,
-            text: 'Previsão de Tendência'
+            text: 'Gráfico da Previsão'
           }
         },
         scales: {
