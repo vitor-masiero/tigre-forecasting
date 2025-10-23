@@ -1,53 +1,44 @@
-export const AGGREGATION_DIMENSIONS = {
-  LINHA: {
-    id: 'linha',
-    label: 'Linha',
-    description: 'Agregar por linha de produtos',
-    icon: 'layers',
-    color: 'blue',
-    examples: ['Linha A', 'Linha B', 'Linha C']
+export const USER_TYPES = {
+  COMERCIAL: {
+    id: 'comercial',
+    label: 'Comercial',
+    description: 'Acesso a previsões e relatórios comerciais',
+    color: 'bg-blue-100 text-blue-800',
+    bgLight: 'bg-blue-50',
+    borderColor: 'border-blue-200'
   },
-  PROCESSO: {
-    id: 'processo',
-    label: 'Processo',
-    description: 'Agregar por processo de negócio',
-    icon: 'process',
-    color: 'purple',
-    examples: ['Processo 1', 'Processo 2', 'Processo 3']
+  MARKETING: {
+    id: 'marketing',
+    label: 'Marketing',
+    description: 'Gerenciamento de campanhas e dados de marketing',
+    color: 'bg-orange-100 text-orange-800',
+    bgLight: 'bg-orange-50',
+    borderColor: 'border-orange-200'
   },
-  CLASSIFICACAO: {
-    id: 'classificacao',
-    label: 'Classificação',
-    description: 'Agregar por classificação ABC',
-    icon: 'tag',
-    color: 'orange',
-    examples: ['Classe A', 'Classe B', 'Classe C']
+  ANALISE: {
+    id: 'analise',
+    label: 'Análise',
+    description: 'Acesso completo a análises e configurações avançadas',
+    color: 'bg-purple-100 text-purple-800',
+    bgLight: 'bg-purple-50',
+    borderColor: 'border-purple-200'
+  },
+  GESTAO: {
+    id: 'gestao',
+    label: 'Gestão',
+    description: 'Acesso administrativo completo',
+    color: 'bg-emerald-100 text-emerald-800',
+    bgLight: 'bg-emerald-50',
+    borderColor: 'border-emerald-200'
   }
 };
 
-export const AGGREGATION_MODES = {
-  NONE: {
-    id: 'none',
-    label: 'Sem Agregação',
-    description: 'Previsão individual por SKU',
-    recommended: false
-  },
-  SINGLE: {
-    id: 'single',
-    label: 'Agregação Simples',
-    description: 'Selecione uma dimensão',
-    recommended: false
-  },
-  DOUBLE: {
-    id: 'double',
-    label: 'Agregação Dupla',
-    description: 'Combine duas dimensões',
-    recommended: true
-  },
-  TRIPLE: {
-    id: 'triple',
-    label: 'Agregação Tripla',
-    description: 'Combine todas as dimensões',
-    recommended: false
-  }
-};
+export const USER_CARGOS = [
+  'Analista de Vendas',
+  'Gerente Comercial',
+  'Coordenador de Marketing',
+  'Especialista em Dados',
+  'Administrador',
+  'Consultor',
+  'Trainee'
+];
