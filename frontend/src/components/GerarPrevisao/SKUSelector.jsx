@@ -4,7 +4,6 @@ export default function SKUSelector({ selectedSKUs, onSKUAdd, onSKURemove }) {
   const [skuInput, setSKUInput] = useState('');
   const [searchResults, setSearchResults] = useState([]);
 
-  // Simulação de busca de SKUs
   const mockSKUs = [
     'SKU-001-A', 'SKU-002-B', 'SKU-003-C', 'SKU-004-D', 'SKU-005-E',
     'SKU-006-F', 'SKU-007-G', 'SKU-008-H', 'SKU-009-I', 'SKU-010-J'
@@ -34,7 +33,6 @@ export default function SKUSelector({ selectedSKUs, onSKUAdd, onSKURemove }) {
         Buscar e Adicionar SKUs
       </label>
 
-      {/* Campo de Busca */}
       <div className="relative mb-4">
         <input
           type="text"
@@ -47,7 +45,6 @@ export default function SKUSelector({ selectedSKUs, onSKUAdd, onSKURemove }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
 
-        {/* Resultados da Busca */}
         {searchResults.length > 0 && (
           <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {searchResults.map(sku => (
@@ -73,7 +70,6 @@ export default function SKUSelector({ selectedSKUs, onSKUAdd, onSKURemove }) {
         )}
       </div>
 
-      {/* SKUs Selecionados */}
       {selectedSKUs.length > 0 && (
         <div>
           <p className="text-sm font-semibold text-gray-700 mb-3">

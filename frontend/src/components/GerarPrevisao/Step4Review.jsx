@@ -1,5 +1,8 @@
+// ============================================
+// ARQUIVO: src/components/GerarPrevisao/Step4Review.jsx (CORRIGIDO)
+// ============================================
 import React, { useState } from 'react';
-import { GRANULARITY_LEVELS, FAMILIAS } from '../../utils/dataStructure';
+import { GRANULARITY_LEVELS, LINHAS, CLASSIFICACOES_ABC } from '../../utils/dataStructure';
 
 export default function Step4Review({ formData, prevStep }) {
   const [isExecuting, setIsExecuting] = useState(false);
@@ -8,7 +11,6 @@ export default function Step4Review({ formData, prevStep }) {
     setIsExecuting(true);
     console.log('Executando previsão com:', formData);
     
-    // Simular execução
     setTimeout(() => {
       setIsExecuting(false);
       alert('Previsão executada com sucesso!');
@@ -18,19 +20,16 @@ export default function Step4Review({ formData, prevStep }) {
   const getDataSelectionSummary = () => {
     const level = GRANULARITY_LEVELS[formData.granularityLevel.toUpperCase()];
     
-    if (formData.granularityLevel === 'todas_familias') {
-      return 'Todas as famílias e processos';
+    if (formData.granularityLevel === 'todas') {
+      return 'Todas as linhas, processos e classificações';
     }
     
-    if (formData.granularityLevel === 'por_familia') {
-      return `${formData.familiasSelecionadas.length} família(s) selecionada(s)`;
-    }
-    
-    if (formData.granularityLevel === 'por_processo') {
-      const totalProcessos = Object.values(formData.processosPorFamilia).reduce(
-        (sum, processos) => sum + processos.length, 0
+    if (formData.granularityLevel === 'combinacao') {
+      const totalLinhas = Object.keys(formData.combinacoes).length;
+      const totalProcessos = Object.values(formData.combinacoes).reduce(
+        (sum, processos) => sum + Object.keys(processos).filter(k => !k.startsWith('_')).length, 0
       );
-      return `${totalProcessos} processo(s) em ${Object.keys(formData.processosPorFamilia).length} família(s)`;
+      return `${totalLinhas} linha(s) • ${totalProcessos} processo(s) selecionado(s)`;
     }
     
     if (formData.granularityLevel === 'por_sku') {
@@ -54,37 +53,6 @@ export default function Step4Review({ formData, prevStep }) {
         };
         return labels[key];
       });
-  };
-
-  const getTotalSKUs = () => {
-    if (formData.granularityLevel === 'todas_familias') {
-      return Object.values(FAMILIAS).reduce((total, familia) => {
-        return total + familia.processos.reduce((sum, p) => sum + p.skus, 0);
-      }, 0);
-    }
-    
-    if (formData.granularityLevel === 'por_familia') {
-      return formData.familiasSelecionadas.reduce((total, familiaId) => {
-        const familia = Object.values(FAMILIAS).find(f => f.id === familiaId);
-        return total + (familia ? familia.processos.reduce((sum, p) => sum + p.skus, 0) : 0);
-      }, 0);
-    }
-    
-    if (formData.granularityLevel === 'por_processo') {
-      return Object.entries(formData.processosPorFamilia).reduce((total, [familiaId, processos]) => {
-        const familia = Object.values(FAMILIAS).find(f => f.id === familiaId);
-        return total + processos.reduce((sum, processoId) => {
-          const processo = familia?.processos.find(p => p.id === processoId);
-          return sum + (processo?.skus || 0);
-        }, 0);
-      }, 0);
-    }
-    
-    if (formData.granularityLevel === 'por_sku') {
-      return formData.skusSelecionados.length;
-    }
-    
-    return 0;
   };
 
   return (
@@ -132,45 +100,87 @@ export default function Step4Review({ formData, prevStep }) {
             <p className="text-lg font-semibold text-gray-900">{getDataSelectionSummary()}</p>
           </div>
 
-          {/* Detalhamento por Família */}
-          {formData.granularityLevel === 'por_familia' && formData.familiasSelecionadas.length > 0 && (
+          {/* Detalhamento de Combinações */}
+          {formData.granularityLevel === 'combinacao' && Object.keys(formData.combinacoes).length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600 mb-3">Famílias Selecionadas:</p>
-              <div className="flex flex-wrap gap-2">
-                {formData.familiasSelecionadas.map(familiaId => {
-                  const familia = Object.values(FAMILIAS).find(f => f.id === familiaId);
-                  return (
-                    <span key={familiaId} className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                      {familia?.label}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Detalhamento por Processo */}
-          {formData.granularityLevel === 'por_processo' && Object.keys(formData.processosPorFamilia).length > 0 && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600 mb-3">Processos Selecionados:</p>
+              <p className="text-sm text-gray-600 mb-3">Combinações Selecionadas:</p>
               <div className="space-y-3">
-                {Object.entries(formData.processosPorFamilia).map(([familiaId, processos]) => {
-                  const familia = Object.values(FAMILIAS).find(f => f.id === familiaId);
-                  if (!familia || processos.length === 0) return null;
+                {Object.entries(formData.combinacoes).map(([linhaId, selecoes]) => {
+                  const linha = Object.values(LINHAS).find(l => l.id === linhaId);
+                  if (!linha) return null;
+                  
+                  const isLinhaCompleta = selecoes['_linha'] !== undefined;
+                  const classificacoesLinha = selecoes['_classificacoes'] || [];
+                  const processos = Object.keys(selecoes).filter(k => !k.startsWith('_'));
                   
                   return (
-                    <div key={familiaId} className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-sm font-medium text-gray-900 mb-2">{familia.label}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {processos.map(processoId => {
-                          const processo = familia.processos.find(p => p.id === processoId);
-                          return (
-                            <span key={processoId} className="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded font-medium">
-                              {processo?.label}
-                            </span>
-                          );
-                        })}
-                      </div>
+                    <div key={linhaId} className="bg-gray-50 rounded-lg p-4">
+                      <p className="text-sm font-semibold text-gray-900 mb-3">{linha.label}</p>
+                      
+                      {/* Linha Completa */}
+                      {isLinhaCompleta && (
+                        <div className="bg-blue-100 border border-blue-300 rounded-lg p-2 mb-2">
+                          <p className="text-sm text-blue-900 font-medium">
+                            ✓ Linha completa (todos os processos e classificações)
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Classificações no nível da linha */}
+                      {classificacoesLinha.length > 0 && (
+                        <div className="bg-white rounded-lg p-2 border border-gray-200 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-700">Classificações gerais:</span>
+                            {classificacoesLinha.map(classificacao => {
+                              const classConfig = CLASSIFICACOES_ABC[classificacao];
+                              return (
+                                <span
+                                  key={classificacao}
+                                  className={`text-xs px-2 py-1 bg-${classConfig.color}-100 text-${classConfig.color}-800 rounded font-medium`}
+                                >
+                                  {classificacao}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Processos específicos */}
+                      {processos.length > 0 && !isLinhaCompleta && (
+                        <div className="space-y-2">
+                          {processos.map(processoId => {
+                            const processo = linha.processos.find(p => p.id === processoId);
+                            const classificacoes = selecoes[processoId];
+                            if (!processo) return null;
+                            
+                            return (
+                              <div key={processoId} className="flex items-center gap-3 bg-white rounded-lg p-2 border border-gray-200">
+                                <span className="text-sm font-medium text-gray-700 min-w-[100px]">
+                                  {processo.label}
+                                </span>
+                                <div className="flex gap-2">
+                                  {classificacoes.length > 0 ? (
+                                    classificacoes.map(classificacao => {
+                                      const classConfig = CLASSIFICACOES_ABC[classificacao];
+                                      return (
+                                        <span
+                                          key={classificacao}
+                                          className={`text-xs px-2 py-1 bg-${classConfig.color}-100 text-${classConfig.color}-800 rounded font-medium`}
+                                        >
+                                          {classificacao}
+                                        </span>
+                                      );
+                                    })
+                                  ) : (
+                                    <span className="text-xs text-gray-500 italic">Todas as classificações</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -235,20 +245,14 @@ export default function Step4Review({ formData, prevStep }) {
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 mb-2">Estimativa de Execução</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-600">Tempo estimado</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    ~{Math.ceil(getTotalSKUs() / 100)} min
-                  </p>
+                  <p className="text-lg font-bold text-gray-900">~5-10 min</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600">SKUs processados</p>
-                  <p className="text-lg font-bold text-gray-900">{getTotalSKUs()}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600">Pontos de dados</p>
-                  <p className="text-lg font-bold text-gray-900">~{(getTotalSKUs() * 36).toLocaleString()}</p>
+                  <p className="text-xs text-gray-600">Status</p>
+                  <p className="text-lg font-bold text-emerald-600">Pronto para executar</p>
                 </div>
               </div>
             </div>

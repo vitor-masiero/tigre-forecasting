@@ -10,10 +10,9 @@ export default function GerarPrevisao() {
     horizontePrevisao: '18',
     modeloPrevisao: 'automatico',
     
-    // Seleção de Dados (NOVO)
-    granularityLevel: 'todas_familias',
-    familiasSelecionadas: [],
-    processosPorFamilia: {}, // { familia_1: [processo_1, processo_2], ... }
+    // Seleção de Dados
+    granularityLevel: 'todas',
+    combinacoes: {}, // { linha_1: { processo_1: ['A', 'B'], processo_2: ['C'] } }
     skusSelecionados: [],
     
     // Fatores Externos

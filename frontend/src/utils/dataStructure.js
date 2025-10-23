@@ -1,63 +1,101 @@
-export const FAMILIAS = {
-  FAMILIA_1: {
-    id: 'familia_1',
-    label: 'Família 1',
-    description: 'Linha de produtos A',
+export const LINHAS = {
+  LINHA_1: {
+    id: 'linha_1',
+    label: 'Linha 1',
+    description: 'Linha de produtos 1',
     processos: [
-      { id: 'processo_1', label: 'Processo 1', skus: 45 },
-      { id: 'processo_2', label: 'Processo 2', skus: 32 },
-      { id: 'processo_3', label: 'Processo 3', skus: 28 }
+      { 
+        id: 'processo_1', 
+        label: 'Processo 1',
+        classificacoes: ['A', 'B', 'C']
+      },
+      { 
+        id: 'processo_2', 
+        label: 'Processo 2',
+        classificacoes: ['A', 'B', 'C']
+      },
+      { 
+        id: 'processo_3', 
+        label: 'Processo 3',
+        classificacoes: ['A', 'B', 'C']
+      }
     ]
   },
-  FAMILIA_2: {
-    id: 'familia_2',
-    label: 'Família 2',
-    description: 'Linha de produtos B',
+  LINHA_2: {
+    id: 'linha_2',
+    label: 'Linha 2',
+    description: 'Linha de produtos 2',
     processos: [
-      { id: 'processo_1', label: 'Processo 1', skus: 52 },
-      { id: 'processo_2', label: 'Processo 2', skus: 38 },
-      { id: 'processo_3', label: 'Processo 3', skus: 41 }
+      { 
+        id: 'processo_1', 
+        label: 'Processo 1',
+        classificacoes: ['A', 'B', 'C']
+      },
+      { 
+        id: 'processo_2', 
+        label: 'Processo 2',
+        classificacoes: ['A', 'B', 'C']
+      },
+      { 
+        id: 'processo_3', 
+        label: 'Processo 3',
+        classificacoes: ['A', 'B', 'C']
+      }
     ]
   },
-  FAMILIA_3: {
-    id: 'familia_3',
-    label: 'Família 3',
-    description: 'Linha de produtos C',
+  LINHA_3: {
+    id: 'linha_3',
+    label: 'Linha 3',
+    description: 'Linha de produtos 3',
     processos: [
-      { id: 'processo_2', label: 'Processo 2', skus: 29 },
-      { id: 'processo_4', label: 'Processo 4', skus: 36 }
+      { 
+        id: 'processo_2', 
+        label: 'Processo 2',
+        classificacoes: ['A', 'B', 'C']
+      },
+      { 
+        id: 'processo_4', 
+        label: 'Processo 4',
+        classificacoes: ['A', 'B', 'C']
+      }
     ]
   },
-  FAMILIA_4: {
-    id: 'familia_4',
-    label: 'Família 4',
-    description: 'Linha de produtos D',
+  LINHA_4: {
+    id: 'linha_4',
+    label: 'Linha 4',
+    description: 'Linha de produtos 4',
     processos: [
-      { id: 'processo_1', label: 'Processo 1', skus: 48 },
-      { id: 'processo_2', label: 'Processo 2', skus: 34 },
-      { id: 'processo_3', label: 'Processo 3', skus: 39 }
+      { 
+        id: 'processo_1', 
+        label: 'Processo 1',
+        classificacoes: ['A', 'B', 'C']
+      },
+      { 
+        id: 'processo_2', 
+        label: 'Processo 2',
+        classificacoes: ['A', 'B', 'C']
+      },
+      { 
+        id: 'processo_3', 
+        label: 'Processo 3',
+        classificacoes: ['A', 'B', 'C']
+      }
     ]
   }
 };
 
 export const GRANULARITY_LEVELS = {
-  TODAS_FAMILIAS: {
-    id: 'todas_familias',
-    label: 'Todas as Famílias',
-    description: 'Previsão agregada de todas as famílias',
+  TODAS: {
+    id: 'todas',
+    label: 'Todas',
+    description: 'Previsão de todas as linhas e processos',
     icon: 'all'
   },
-  POR_FAMILIA: {
-    id: 'por_familia',
-    label: 'Por Família',
-    description: 'Selecione famílias específicas',
-    icon: 'family'
-  },
-  POR_PROCESSO: {
-    id: 'por_processo',
-    label: 'Por Processo',
-    description: 'Selecione processos dentro de famílias',
-    icon: 'process'
+  COMBINACAO: {
+    id: 'combinacao',
+    label: 'Combinação',
+    description: 'Selecione linhas, processos e classificações',
+    icon: 'combo'
   },
   POR_SKU: {
     id: 'por_sku',
@@ -65,4 +103,10 @@ export const GRANULARITY_LEVELS = {
     description: 'Previsão individual de SKUs',
     icon: 'sku'
   }
+};
+
+export const CLASSIFICACOES_ABC = {
+  A: { id: 'A', label: 'Classe A', color: 'emerald', description: 'Alta prioridade' },
+  B: { id: 'B', label: 'Classe B', color: 'blue', description: 'Média prioridade' },
+  C: { id: 'C', label: 'Classe C', color: 'orange', description: 'Baixa prioridade' }
 };
