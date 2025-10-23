@@ -5,17 +5,12 @@ import ConfigurationSteps from '../components/GerarPrevisao/ConfigurationSteps';
 export default function GerarPrevisao() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    // Configurações Básicas
-    periodoHistorico: '36',
+    periodoHistorico: '12',
     horizontePrevisao: '18',
-    modeloPrevisao: 'automatico',
-    
-    // Seleção de Dados
+    modeloPrevisao: 'prophet',
     granularityLevel: 'todas',
     combinacoes: {}, // { linha_1: { processo_1: ['A', 'B'], processo_2: ['C'] } }
     skusSelecionados: [],
-    
-    // Fatores Externos
     fatoresExternos: {
       dadosMarketing: true,
       dadosClimaticos: false,
@@ -25,6 +20,7 @@ export default function GerarPrevisao() {
       indicadoresMacro: false
     }
   });
+  const [jsonPredict, setJsonPredict] = useState();
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({
@@ -34,7 +30,7 @@ export default function GerarPrevisao() {
   };
 
   const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(currentStep + 1);
+    if (currentStep < 5) setCurrentStep(currentStep + 1);
   };
 
   const prevStep = () => {
@@ -43,12 +39,14 @@ export default function GerarPrevisao() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <PageHeader currentStep={currentStep} totalSteps={4} />
+      <PageHeader currentStep={currentStep} totalSteps={5} />
       <div className="px-8 -mt-6 pb-8">
         <ConfigurationSteps
           currentStep={currentStep}
           formData={formData}
           updateFormData={updateFormData}
+          jsonPredict={jsonPredict}
+          setJsonPredict={setJsonPredict}
           nextStep={nextStep}
           prevStep={prevStep}
         />

@@ -8,17 +8,11 @@ export default function Step2DataSelection({ formData, updateFormData, nextStep,
   const handleGranularityChange = (level) => {
     updateFormData('granularityLevel', level);
     updateFormData('combinacoes', {});
-    updateFormData('skusSelecionados', []);
+    updateFormData('skusSelecionados', '');
   };
 
-  const handleSKUAdd = (sku) => {
-    if (!formData.skusSelecionados.includes(sku)) {
-      updateFormData('skusSelecionados', [...formData.skusSelecionados, sku]);
-    }
-  };
-
-  const handleSKURemove = (sku) => {
-    updateFormData('skusSelecionados', formData.skusSelecionados.filter(s => s !== sku));
+  const handleSKUChange = (skuString) => {
+    updateFormData('skusSelecionados', [skuString]);
   };
 
   const isValid = () => {
@@ -26,7 +20,9 @@ export default function Step2DataSelection({ formData, updateFormData, nextStep,
     if (formData.granularityLevel === 'combinacao') {
       return Object.keys(formData.combinacoes).length > 0;
     }
-    if (formData.granularityLevel === 'por_sku') return formData.skusSelecionados.length > 0;
+    if (formData.granularityLevel === 'por_sku') {
+      return !!(formData.skusSelecionados && formData.skusSelecionados.toString().trim());
+    }
     return false;
   };
 
@@ -34,7 +30,7 @@ export default function Step2DataSelection({ formData, updateFormData, nextStep,
     if (formData.granularityLevel === 'todas') {
       return 'Todas as linhas, processos e classificações';
     }
-    
+
     if (formData.granularityLevel === 'combinacao') {
       const totalLinhas = Object.keys(formData.combinacoes).length;
       const totalProcessos = Object.values(formData.combinacoes).reduce(
@@ -42,11 +38,11 @@ export default function Step2DataSelection({ formData, updateFormData, nextStep,
       );
       return `${totalLinhas} linha(s) • ${totalProcessos} processo(s)`;
     }
-    
+
     if (formData.granularityLevel === 'por_sku') {
-      return `${formData.skusSelecionados.length} SKU(s) selecionado(s)`;
+      return formData.skusSelecionados ? `SKU: ${formData.skusSelecionados}` : '';
     }
-    
+
     return '';
   };
 
@@ -80,25 +76,12 @@ export default function Step2DataSelection({ formData, updateFormData, nextStep,
         {/* Seleção de SKUs */}
         {formData.granularityLevel === 'por_sku' && (
           <SKUSelector
-            selectedSKUs={formData.skusSelecionados}
-            onSKUAdd={handleSKUAdd}
-            onSKURemove={handleSKURemove}
+            skuValue={formData.skusSelecionados}
+            onSKUChange={handleSKUChange}
           />
         )}
 
-        {/* Resumo da Seleção */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-              <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
-            </svg>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-blue-900">Seleção Atual</p>
-              <p className="text-sm text-blue-700">{getSelectionSummary()}</p>
-            </div>
-          </div>
-        </div>
+        {/* Resumo da Seleção removido conforme solicitado */}
       </div>
 
       <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">

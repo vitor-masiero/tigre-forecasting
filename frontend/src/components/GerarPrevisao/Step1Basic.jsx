@@ -32,37 +32,15 @@ export default function Step1Basic({ formData, updateFormData, nextStep }) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Horizonte de Previsão
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {['6', '12', '18', '24'].map(months => (
-                <button
-                  key={months}
-                  onClick={() => updateFormData('horizontePrevisao', months)}
-                  className={`px-4 py-3 rounded-lg font-medium transition ${
-                    formData.horizontePrevisao === months
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {months} meses
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div>
           <label className="block text-sm font-semibold text-gray-700 mb-3">
             Modelo de Previsão
           </label>
           <div className="grid grid-cols-4 gap-3">
             {[
-              { value: 'automatico', label: 'Automático', desc: 'Melhor Fit' },
-              { value: 'arima', label: 'ARIMA', desc: 'Estatístico' },
+              // { value: 'automatico', label: 'Automático', desc: 'Melhor Fit' },
+              // { value: 'arima', label: 'ARIMA', desc: 'Estatístico' },
               { value: 'prophet', label: 'Prophet', desc: 'Facebook' },
-              { value: 'ensemble', label: 'Ensemble', desc: 'Combinado' }
+              // { value: 'ensemble', label: 'Ensemble', desc: 'Combinado' }
             ].map(model => (
               <button
                 key={model.value}
@@ -83,6 +61,59 @@ export default function Step1Basic({ formData, updateFormData, nextStep }) {
             ))}
           </div>
         </div>
+
+          {/* <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">
+              Horizonte de Previsão
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              {['6', '12', '18', '24'].map(months => (
+                <button
+                  key={months}
+                  onClick={() => updateFormData('horizontePrevisao', months)}
+                  className={`px-4 py-3 rounded-lg font-medium transition ${
+                    formData.horizontePrevisao === months
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {months} meses
+                </button>
+              ))}
+            </div>
+          </div> */}
+        </div >
+
+        {/* <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Modelo de Previsão
+          </label>
+          <div className="grid grid-cols-4 gap-3">
+            {[
+              // { value: 'automatico', label: 'Automático', desc: 'Melhor Fit' },
+              // { value: 'arima', label: 'ARIMA', desc: 'Estatístico' },
+              { value: 'prophet', label: 'Prophet', desc: 'Facebook' },
+              // { value: 'ensemble', label: 'Ensemble', desc: 'Combinado' }
+            ].map(model => (
+              <button
+                key={model.value}
+                onClick={() => updateFormData('modeloPrevisao', model.value)}
+                className={`px-4 py-3 rounded-lg font-medium transition text-left ${
+                  formData.modeloPrevisao === model.value
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <div>{model.label}</div>
+                <div className={`text-xs mt-1 ${
+                  formData.modeloPrevisao === model.value ? 'text-blue-100' : 'text-gray-500'
+                }`}>
+                  {model.desc}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div> */}
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start gap-3">

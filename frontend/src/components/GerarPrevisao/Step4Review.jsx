@@ -3,27 +3,170 @@
 // ============================================
 import React, { useState } from 'react';
 import { GRANULARITY_LEVELS, LINHAS, CLASSIFICACOES_ABC } from '../../utils/dataStructure';
+import api from '../../utils/Api.js';
 
-export default function Step4Review({ formData, prevStep }) {
+export default function Step4Review({ formData, setJsonPredict, nextStep, prevStep }) {
   const [isExecuting, setIsExecuting] = useState(false);
 
-  const handleExecute = () => {
+  const handleExecute = async () => {
     setIsExecuting(true);
-    console.log('Executando previsão com:', formData);
-    
-    setTimeout(() => {
+
+    const body = convertFormDataToPayload(formData);
+
+    let response, response_wmape;
+
+    try {
+      response = await api.post("/predict", body);
+    } catch (err) {
+      console.error("Error details:", err.response || err);
       setIsExecuting(false);
-      alert('Previsão executada com sucesso!');
-    }, 2000);
+      return alert("Ocorreu um erro ao executar a previsão. Verifique se a API está acessível.");
+    }
+
+    let json = response.data;
+
+    if (body?.sku) {
+      json.sku = body.sku;
+
+      try {
+        response_wmape = await api.post("/validation/individual", { sku: body.sku });
+        json.wmape = Number(response_wmape.data.wmape);
+      } catch (err) {
+        console.error("Error details:", err.response || err);
+        setIsExecuting(false);
+        return alert("Ocorreu um erro ao executar a previsão. Verifique se a API está acessível.");
+      }
+
+      // if (true) {
+      //   try {
+      //     response_wmape = await api.post("/validation/individual", { sku: body.sku });
+      //     json.wmape = Number(response_wmape.data.wmape);
+      //   } catch (err) {
+      //     console.error("Error details:", err.response || err);
+      //     setIsExecuting(false);
+      //     return alert("Ocorreu um erro ao executar a previsão. Verifique se a API está acessível.");
+      //   }
+      // } else {
+      //   json.wmape = Number((Math.random() * 100).toFixed(8));
+      // }
+    }
+
+    setJsonPredict(json);
+    setIsExecuting(false);
+    nextStep();
   };
+
+  const convertFormDataToPayload = (formData) => {
+    const mapModel = (m) => {
+      if (!m) return null;
+      if (m === 'automatico') return 'auto';
+      return m.charAt(0).toUpperCase() + m.slice(1);
+    };
+
+    const extractId = (s) => {
+      if (!s || typeof s !== 'string') return s;
+      const m = s.match(/\d+/);
+      return m ? m[0] : s;
+    };
+
+    const base = {
+      periods: Number(formData.periodoHistorico || 0),
+      preview_rows: Number(formData.periodoHistorico || 0),
+      model: mapModel(formData.modeloPrevisao)
+    };
+
+    if (formData.granularityLevel === 'todas') {
+      return {
+        ...base,
+        aggregation_type: 'all'
+      };
+    }
+
+    if (formData.granularityLevel === 'por_sku') {
+      const skus = formData.skusSelecionados || [];
+      if (skus.length === 0) {
+        return { ...base, aggregation_type: 'sku' };
+      }
+      const payloads = skus.map(sku => ({
+        ...base,
+        aggregation_type: 'sku',
+        sku
+      }));
+      return payloads.length === 1 ? payloads[0] : payloads;
+    }
+
+    if (formData.granularityLevel === 'combinacao') {
+      const combos = formData.combinacoes || {};
+      const entries = [];
+
+      Object.entries(combos).forEach(([linhaId, selecoes]) => {
+        const familiaId = String(extractId(linhaId));
+        if (selecoes && selecoes._linha) {
+          entries.push({
+            ...base,
+            aggregation_type: 'familia',
+            familia: familiaId,
+            ...(Array.isArray(selecoes._classificacoes) && selecoes._classificacoes.length === 1
+              ? { abc_class: selecoes._classificacoes[0] }
+              : {})
+          });
+          return;
+        }
+
+        if (Array.isArray(selecoes._classificacoes) && selecoes._classificacoes.length > 0) {
+          selecoes._classificacoes.forEach(cls => {
+            entries.push({
+              ...base,
+              aggregation_type: 'combined',
+              familia: familiaId,
+              abc_class: cls
+            });
+          });
+        }
+
+        Object.keys(selecoes || {}).forEach(key => {
+          if (key.startsWith('_')) return;
+          const processoIdRaw = key;
+          const processoId = String(extractId(processoIdRaw));
+          const classificacoes = Array.isArray(selecoes[processoIdRaw]) ? selecoes[processoIdRaw] : [];
+
+          if (classificacoes.length === 0) {
+            entries.push({
+              ...base,
+              aggregation_type: 'combined',
+              familia: familiaId,
+              processo: processoId
+            });
+          } else {
+            classificacoes.forEach(cls => {
+              entries.push({
+                ...base,
+                aggregation_type: 'combined',
+                familia: familiaId,
+                processo: processoId,
+                abc_class: cls
+              });
+            });
+          }
+        });
+      });
+
+      if (entries.length === 0) {
+        return { ...base, aggregation_type: 'all' };
+      }
+      return entries.length === 1 ? entries[0] : entries;
+    }
+
+    return { ...base, aggregation_type: 'all' };
+  }
 
   const getDataSelectionSummary = () => {
     const level = GRANULARITY_LEVELS[formData.granularityLevel.toUpperCase()];
-    
+
     if (formData.granularityLevel === 'todas') {
       return 'Todas as linhas, processos e classificações';
     }
-    
+
     if (formData.granularityLevel === 'combinacao') {
       const totalLinhas = Object.keys(formData.combinacoes).length;
       const totalProcessos = Object.values(formData.combinacoes).reduce(
@@ -31,11 +174,11 @@ export default function Step4Review({ formData, prevStep }) {
       );
       return `${totalLinhas} linha(s) • ${totalProcessos} processo(s) selecionado(s)`;
     }
-    
+
     if (formData.granularityLevel === 'por_sku') {
       return `${formData.skusSelecionados.length} SKU(s) individual(is)`;
     }
-    
+
     return level.label;
   };
 
@@ -76,10 +219,10 @@ export default function Step4Review({ formData, prevStep }) {
               <p className="text-sm text-gray-600 mb-1">Período Histórico</p>
               <p className="text-lg font-semibold text-gray-900">{formData.periodoHistorico} meses</p>
             </div>
-            <div>
+            {/* <div>
               <p className="text-sm text-gray-600 mb-1">Horizonte de Previsão</p>
               <p className="text-lg font-semibold text-gray-900">{formData.horizontePrevisao} meses</p>
-            </div>
+            </div> */}
             <div>
               <p className="text-sm text-gray-600 mb-1">Modelo</p>
               <p className="text-lg font-semibold text-gray-900 capitalize">{formData.modeloPrevisao}</p>
@@ -108,15 +251,15 @@ export default function Step4Review({ formData, prevStep }) {
                 {Object.entries(formData.combinacoes).map(([linhaId, selecoes]) => {
                   const linha = Object.values(LINHAS).find(l => l.id === linhaId);
                   if (!linha) return null;
-                  
+
                   const isLinhaCompleta = selecoes['_linha'] !== undefined;
                   const classificacoesLinha = selecoes['_classificacoes'] || [];
                   const processos = Object.keys(selecoes).filter(k => !k.startsWith('_'));
-                  
+
                   return (
                     <div key={linhaId} className="bg-gray-50 rounded-lg p-4">
                       <p className="text-sm font-semibold text-gray-900 mb-3">{linha.label}</p>
-                      
+
                       {/* Linha Completa */}
                       {isLinhaCompleta && (
                         <div className="bg-blue-100 border border-blue-300 rounded-lg p-2 mb-2">
@@ -125,7 +268,7 @@ export default function Step4Review({ formData, prevStep }) {
                           </p>
                         </div>
                       )}
-                      
+
                       {/* Classificações no nível da linha */}
                       {classificacoesLinha.length > 0 && (
                         <div className="bg-white rounded-lg p-2 border border-gray-200 mb-2">
@@ -145,7 +288,7 @@ export default function Step4Review({ formData, prevStep }) {
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Processos específicos */}
                       {processos.length > 0 && !isLinhaCompleta && (
                         <div className="space-y-2">
@@ -153,7 +296,7 @@ export default function Step4Review({ formData, prevStep }) {
                             const processo = linha.processos.find(p => p.id === processoId);
                             const classificacoes = selecoes[processoId];
                             if (!processo) return null;
-                            
+
                             return (
                               <div key={processoId} className="flex items-center gap-3 bg-white rounded-lg p-2 border border-gray-200">
                                 <span className="text-sm font-medium text-gray-700 min-w-[100px]">
@@ -248,7 +391,7 @@ export default function Step4Review({ formData, prevStep }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-600">Tempo estimado</p>
-                  <p className="text-lg font-bold text-gray-900">~5-10 min</p>
+                  <p className="text-lg font-bold text-gray-900">1-2 min</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Status</p>
