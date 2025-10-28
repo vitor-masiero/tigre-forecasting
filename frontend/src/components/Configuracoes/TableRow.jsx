@@ -1,6 +1,7 @@
 import React from 'react';
 import { useUsers } from '../../hooks/useUsers';
 import UserTypeIcon from './UserTypeIcon';
+import { USER_TYPES } from '../../utils/userTypes';
 
 export default function TableRow({ user, onEdit }) {
   const { deleteUser } = useUsers();

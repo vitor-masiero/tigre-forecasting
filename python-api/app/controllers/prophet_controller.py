@@ -6,6 +6,7 @@ from app.services.classification_service import ClassificationService
 from app.services.redirect_service import RedirectService
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from app.data_processing.clusterization import DataClusterization
 
 router = APIRouter()
 
@@ -162,3 +163,21 @@ ation_type": "sku",
         )
 
         return df_classified.to_dict(orient="records")
+
+    @router.get("/metrics")
+    def get_model_metrics():
+        df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
+        df_clustered = DataClusterization.obter_metricas_todos_skus(df_processed)
+        return df_clustered
+    
+    @router.get("/metrics/{sku}")
+    def get_sku_metrics(sku: str):
+        df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
+        df_clustered = DataClusterization.obter_metricas(df_processed, sku)
+        return df_clustered
+
+    @router.get("/clusters")
+    def get_sku_clusters():
+        df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
+        df_metrics = DataClusterization.clusterizar_skus(df_processed)
+        return df_metrics
