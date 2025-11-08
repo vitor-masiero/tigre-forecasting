@@ -114,8 +114,8 @@ class ValidationService:
             df_prophet["y"] = df_prophet["y"].clip(lower=0)
 
         # Parâmetros do modelo
-        changepoint_prior_scale = 0.1
-        seasonality_prior_scale = 10
+        changepoint_prior_scale = 0.05
+        seasonality_prior_scale = 25
         seasonality_mode = "multiplicative"
 
         # Treina modelo

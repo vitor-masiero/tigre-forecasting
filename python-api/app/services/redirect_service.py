@@ -1,5 +1,6 @@
 from app.services.prophet_service import ProphetService
 from app.services.aggregation_service import AggregationService
+from app.services.xgboost_service import XGBoostService
 
 
 class RedirectService:
@@ -115,6 +116,7 @@ class RedirectService:
         elif model_name == "TSB":
             return "TSB"
         elif model_name == "XGBoost":
-            return "XGBOOST"
+            xgboost_service = XGBoostService(db)
+            return xgboost_service.make_prediction(df, periods=periods, sku=sku)
         else:
             raise ValueError(f"Modelo desconhecido: {model_name}")
