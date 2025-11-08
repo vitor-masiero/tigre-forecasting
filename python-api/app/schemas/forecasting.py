@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, validator, model_validator
 
 class ForecastRequest(BaseModel):
     periods: int = Field(
-        default=12, ge=1, le=60, description="Número de períodos para previsão"
+        default=12, ge=1,  description="Número de períodos para previsão"
     )
 
     sku: Optional[str] = Field(

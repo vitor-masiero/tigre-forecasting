@@ -65,6 +65,7 @@ class XGBoostService:
             g['trend_6'] = g[target].shift(1).rolling(window=6, min_periods=3).apply(rolling_trend, raw=False)
 
             g = g.fillna(method='bfill').fillna(0)
+            g = g.replace([np.inf, -np.inf], np.nan).fillna(method='bfill').fillna(0)
 
             enriched_dfs.append(g)
         
@@ -234,38 +235,95 @@ class XGBoostService:
 
         last_date = df_enriched['Data'].max()
         future_dates = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=periods, freq='MS')
-        
-        last_row = df_enriched[feature_cols + ['Data', 'Quantidade']].iloc[-1:].copy()
-        
+
+        historical_quantities = df_enriched['Quantidade'].tolist()
         future_predictions = []
-        
+
         for i in range(periods):
-            future_row = last_row.copy()
-            future_row['Data'] = future_dates[i]
+            future_date = future_dates[i]
             
-            future_row['year'] = future_row['Data'].dt.year
-            future_row['month'] = future_row['Data'].dt.month
-            future_row['quarter'] = future_row['Data'].dt.quarter
-            future_row['day_of_year'] = future_row['Data'].dt.dayofyear
-            future_row['week_of_year'] = future_row['Data'].dt.isocalendar().week.astype(int)
-            future_row['month_sin'] = np.sin(2 * np.pi * future_row['month'] / 12)
-            future_row['month_cos'] = np.cos(2 * np.pi * future_row['month'] / 12)
-            future_row['quarter_sin'] = np.sin(2 * np.pi * future_row['quarter'] / 4)
-            future_row['quarter_cos'] = np.cos(2 * np.pi * future_row['quarter'] / 4)
+            lag_1 = historical_quantities[-1] if len(historical_quantities) >= 1 else 0
+            lag_3 = historical_quantities[-3] if len(historical_quantities) >= 3 else 0
+            lag_6 = historical_quantities[-6] if len(historical_quantities) >= 6 else 0
+            lag_12 = historical_quantities[-12] if len(historical_quantities) >= 12 else 0
+            
+            recent_3 = historical_quantities[-3:] if len(historical_quantities) >= 3 else historical_quantities
+            recent_6 = historical_quantities[-6:] if len(historical_quantities) >= 6 else historical_quantities
+            recent_12 = historical_quantities[-12:] if len(historical_quantities) >= 12 else historical_quantities
+            
+            rolling_mean_3 = np.mean(recent_3) if len(recent_3) > 0 else 0
+            rolling_mean_6 = np.mean(recent_6) if len(recent_6) > 0 else 0
+            rolling_mean_12 = np.mean(recent_12) if len(recent_12) > 0 else 0
+            
+            rolling_std_3 = np.std(recent_3) if len(recent_3) > 1 else 0
+            rolling_std_6 = np.std(recent_6) if len(recent_6) > 1 else 0
+            rolling_std_12 = np.std(recent_12) if len(recent_12) > 1 else 0
+            
+            growth_rate_1 = (lag_1 - historical_quantities[-2]) / historical_quantities[-2] if len(historical_quantities) >= 2 and historical_quantities[-2] != 0 else 0
+            growth_rate_3 = (lag_1 - historical_quantities[-4]) / historical_quantities[-4] if len(historical_quantities) >= 4 and historical_quantities[-4] != 0 else 0
+            growth_rate_6 = (lag_1 - historical_quantities[-7]) / historical_quantities[-7] if len(historical_quantities) >= 7 and historical_quantities[-7] != 0 else 0
+            
+            if len(recent_6) >= 3:
+                y = np.array(recent_6)
+                X = np.arange(len(y))
+                A = np.vstack([X, np.ones(len(X))]).T
+                trend_6, _ = np.linalg.lstsq(A, y, rcond=None)[0]
+            else:
+                trend_6 = 0
+            
+            year = future_date.year
+            month = future_date.month
+            quarter = (month - 1) // 3 + 1
+            day_of_year = future_date.dayofyear
+            week_of_year = future_date.isocalendar()[1]
+            
+            month_sin = np.sin(2 * np.pi * month / 12)
+            month_cos = np.cos(2 * np.pi * month / 12)
+            quarter_sin = np.sin(2 * np.pi * quarter / 4)
+            quarter_cos = np.cos(2 * np.pi * quarter / 4)
             
             feriados = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '12-25']
-            future_row['is_holiday'] = future_row['Data'].dt.strftime('%m-%d').isin(feriados).astype(int)
+            is_holiday = 1 if future_date.strftime('%m-%d') in feriados else 0
+            
+            future_row = pd.DataFrame([{
+                'lag_1': lag_1,
+                'lag_3': lag_3,
+                'lag_6': lag_6,
+                'lag_12': lag_12,
+                'rolling_mean_3': rolling_mean_3,
+                'rolling_mean_6': rolling_mean_6,
+                'rolling_mean_12': rolling_mean_12,
+                'rolling_std_3': rolling_std_3,
+                'rolling_std_6': rolling_std_6,
+                'rolling_std_12': rolling_std_12,
+                'growth_rate_1': growth_rate_1,
+                'growth_rate_3': growth_rate_3,
+                'growth_rate_6': growth_rate_6,
+                'year': year,
+                'month': month,
+                'quarter': quarter,
+                'day_of_year': day_of_year,
+                'week_of_year': week_of_year,
+                'month_sin': month_sin,
+                'month_cos': month_cos,
+                'quarter_sin': quarter_sin,
+                'quarter_cos': quarter_cos,
+                'is_holiday': is_holiday,
+                'trend_6': trend_6
+            }])
+            
+            future_row = future_row.replace([np.inf, -np.inf], 0).fillna(0)
             
             X_future = future_row[feature_cols]
             pred = model.predict(X_future)[0]
+            pred = max(0, pred)
             
             future_predictions.append({
-                'ds': future_dates[i],
-                'yhat': max(0, pred)
+                'ds': future_date,
+                'yhat': pred
             })
             
-            future_row['Quantidade'] = pred
-            last_row = future_row
+            historical_quantities.append(pred)
 
         forecast_data = pd.DataFrame(future_predictions)
 
@@ -359,7 +417,10 @@ class XGBoostService:
             df_clean = df_clean[(df_clean['Quantidade'] >= lower_bound) & (df_clean['Quantidade'] <= upper_bound)]
             
         elif method == 'zscore':
-            z_scores = np.abs((df_clean['Quantidade'] - df_clean['Quantidade'].mean()) / df_clean['Quantidade'].std())
+            std = df_clean['Quantidade'].std()
+            if std == 0 or np.isnan(std):
+                return df_clean
+            z_scores = np.abs((df_clean['Quantidade'] - df_clean['Quantidade'].mean()) / std)
             df_clean = df_clean[z_scores < threshold]
             
         elif method == 'percentile':
