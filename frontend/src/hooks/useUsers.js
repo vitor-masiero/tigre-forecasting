@@ -9,12 +9,13 @@ export function useUsers() {
   // Carrega usuários ao montar o componente
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Busca todos os usuários da API
    */
-  const fetchUsers = async (includeInactive = false) => {
+const fetchUsers = async (includeInactive = false) => {
     try {
       setLoading(true);
       setError(null);
@@ -24,7 +25,14 @@ export function useUsers() {
       });
 
       console.log('✅ Usuários carregados:', response.data);
-      setUsers(response.data.usuarios || []);
+      
+      // Normaliza todos os usuários para garantir que 'tipo' existe
+      const normalizedUsers = (response.data.usuarios || []).map(user => ({
+        ...user,
+        tipo: user.tipo || user.role
+      }));
+      
+      setUsers(normalizedUsers);
       
     } catch (err) {
       console.error('❌ Erro ao carregar usuários:', err);
@@ -38,7 +46,7 @@ export function useUsers() {
   /**
    * Cria novo usuário
    */
-  const addUser = async (userData) => {
+const addUser = async (userData) => {
     try {
       setLoading(true);
 
@@ -57,12 +65,18 @@ export function useUsers() {
 
       console.log('✅ Usuário criado:', response.data);
 
+      // Normaliza resposta para garantir que 'tipo' existe
+      const normalizedUser = {
+        ...response.data,
+        tipo: response.data.tipo || response.data.role
+      };
+
       // Atualiza lista local
-      setUsers(prev => [response.data, ...prev]);
+      setUsers(prev => [normalizedUser, ...prev]);
 
       return { 
         success: true, 
-        user: response.data 
+        user: normalizedUser
       };
 
     } catch (err) {
@@ -81,7 +95,7 @@ export function useUsers() {
   /**
    * Atualiza usuário existente
    */
-  const updateUser = async (userId, userData) => {
+const updateUser = async (userId, userData) => {
     try {
       setLoading(true);
 
@@ -99,14 +113,20 @@ export function useUsers() {
 
       console.log('✅ Usuário atualizado:', response.data);
 
+      // Normaliza resposta para garantir que 'tipo' existe
+      const normalizedUser = {
+        ...response.data,
+        tipo: response.data.tipo || response.data.role
+      };
+
       // Atualiza lista local
       setUsers(prev => prev.map(user => 
-        user.id_usuario === userId ? response.data : user
+        user.id_usuario === userId ? normalizedUser : user
       ));
 
       return { 
         success: true, 
-        user: response.data 
+        user: normalizedUser
       };
 
     } catch (err) {
