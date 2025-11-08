@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, validator, model_validator
 
 class ForecastRequest(BaseModel):
     periods: int = Field(
-        default=12, ge=1, le=60, description="Número de períodos para previsão"
+        default=12, ge=1,  description="Número de períodos para previsão"
     )
 
     sku: Optional[str] = Field(
@@ -115,4 +115,8 @@ class ForecastRunResponse(BaseModel):
     auto_selected: bool = Field(
         default=False, 
         description="Indica se o modelo foi selecionado automaticamente por ABC"
+    )
+    metrics: Optional[dict] = Field(
+        default=None,
+        description="Métricas do modelo (WMAPE, MAE, RMSE, etc.)"
     )

@@ -20,3 +20,12 @@ class MetricasPrevisao(DatabaseConfig.Base):
     ds_seasonality_mode = Column(String, nullable=True)
     
     num_wmape = Column(String, nullable=True)
+    
+    num_bias = Column(Float, nullable=True)
+    num_bias_pct = Column(Float, nullable=True)
+    num_fva = Column(Float, nullable=True)
+    num_mae = Column(Float, nullable=True)
+    num_rmse = Column(Float, nullable=True)
+    num_mape = Column(Float, nullable=True)
+    num_n_estimators = Column(Integer, nullable=True)
+    num_learning_rate = Column(Float, nullable=True)

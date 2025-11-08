@@ -125,11 +125,9 @@ ation_type": "sku",
                 processo=payload.processo,
                 abc_class=payload.abc_class
             )
-            
-            # Desempacota resultado
-            run_id, forecast_df, time, aggregation_info, model_used, auto_selected = result
 
-            # Prepara preview dos resultados
+            run_id, forecast_df, time, aggregation_info, model_used, auto_selected, metrics = result
+
             preview = forecast_df.head(payload.preview_rows).to_dict(orient="records")
 
             return ForecastRunResponse(
@@ -139,7 +137,8 @@ ation_type": "sku",
                 time=time,
                 aggregation_info=aggregation_info,
                 model_used=model_used,
-                auto_selected=auto_selected
+                auto_selected=auto_selected,
+                metrics=metrics
             )
 
         except ValueError as e:
