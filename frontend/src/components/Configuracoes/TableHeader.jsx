@@ -2,12 +2,13 @@ import React from 'react';
 
 export default function TableHeader() {
   const columns = [
-    { label: 'NOME', width: 'w-56' },
-    { label: 'E-MAIL', width: 'w-64' },
-    { label: 'CPF', width: 'w-40' },
-    { label: 'CARGO', width: 'w-48' },
-    { label: 'TIPO', width: 'w-40' },
-    { label: 'AÇÕES', width: 'w-32' }
+    { label: 'NOME', width: 'w-64' },
+    { label: 'E-MAIL', width: 'w-56' },
+    { label: 'CPF', width: 'w-36' },
+    { label: 'CARGO', width: 'w-44' },
+    { label: 'TIPO', width: 'w-32' },
+    { label: 'ÚLTIMO ACESSO', width: 'w-36' },
+    { label: 'AÇÕES', width: 'w-24' }
   ];
 
   return (

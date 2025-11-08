@@ -1,10 +1,13 @@
 import numpy as np
 from app.repository.prophet_repository import ProphetRepository
 from app.utils.holiday import get_brazil_holidays
+from app.utils.incc import get_incc
+from app.utils.time import Time
 from prophet import Prophet
 from sqlalchemy.orm import Session
 
 br_holidays = get_brazil_holidays()
+incc = get_incc()
 
 
 class ProphetService:
@@ -12,22 +15,24 @@ class ProphetService:
         self.db = db_session
         self.saver = ProphetRepository(db_session)
 
-    def make_prediction(self, df, sku=None, periods=12):
+    def make_prediction(self, df, sku=None, periods=12, time=None, aggregation_info=None):
+        time = Time()
+
         if sku is not None:
+            if "SKU" not in df.columns:
+                raise ValueError("DataFrame deve conter coluna 'SKU' quando sku é especificado")
             df_filtered = df[df["SKU"] == sku].copy()
-            skus = [sku]
+            
             if df_filtered.empty:
                 raise ValueError(f"SKU '{sku}' não encontrado nos dados")
-            print(f"Fazendo previsão para SKU: {sku}")
-        else:
+            
+            print(f"Previsão individual para SKU: {sku}")
+        else:  
             df_filtered = df.copy()
-            skus = np.sort(df["SKU"].unique())
-            print("Fazendo previsão para todos os SKUs")
-
-        df_filtered = df_filtered[["Data", "Quantidade"]].copy()
-
-        df_prophet = df_filtered.rename(columns={"Data": "ds", "Quantidade": "y"})
-
+            
+        df_prophet = df_filtered[["Data", "Quantidade"]].copy()
+        df_prophet = df_prophet.rename(columns={"Data": "ds", "Quantidade": "y"})
+        
         print(f"📊 Dados preparados: {len(df_prophet)} pontos de dados")
 
         model = Prophet(
@@ -38,7 +43,7 @@ class ProphetService:
             changepoint_prior_scale=0.05,
             holidays=br_holidays,
         )
-
+        
         if len(df_prophet) >= 24:
             model.add_seasonality(name="monthly", period=periods, fourier_order=5)
 
@@ -53,9 +58,13 @@ class ProphetService:
         forecast["yhat_lower"] = forecast["yhat_lower"].clip(lower=0)
         forecast["yhat_upper"] = forecast["yhat_upper"].clip(lower=0)
 
-        run_id = self.saver.save_forecast_run("Prophet", len(skus), None)
+        identifier = sku if sku else "aggregated"
+        run_id = self.saver.save_forecast_run("Prophet", 1, identifier)
+        time_elapsed = time.obter_tempo()
 
-        return run_id, forecast
+        print(f"✅ Previsão concluída em {time_elapsed:.2f}s")
+
+        return run_id, forecast, time_elapsed
 
     def predict_all_skus(self, df, periods=12):
         # Lista de SKUs únicos em ordem crescente

@@ -1,4 +1,4 @@
-
+from numpy import float64
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 import uuid
@@ -6,6 +6,7 @@ import datetime
 from typing import Optional, Dict
 from app.models.ponto_previsao import PontosPrevisao
 from app.models.previsao import Previsao
+from app.models.metricas import MetricasPrevisao
 
 import pandas as pd
 
@@ -75,4 +76,43 @@ class ProphetRepository:
         except SQLAlchemyError as e:
             self.db.rollback()
             print(f"❌ Erro ao salvar pontos de previsão: {str(e)}")
+            raise e
+
+    def salvar_metricas_sku(
+        self, 
+        sku: str, 
+        wmape: float, 
+        media: float,
+        coeficiente_variacao: float, 
+        tendencia: float,
+        forca_sazonalidade: float, 
+        proporcao_zeros: float,
+        changepoint_prior_scale: float, 
+        seasonality_prior_scale: float,
+        seasonality_mode: str,
+        ds_modelo: str
+    ):
+        try:
+            print(f"Salvando métricas para SKU {sku}: WMAPE = {wmape}")
+            
+            nova_metrica = MetricasPrevisao(
+                ds_sku=sku,
+                ds_modelo=ds_modelo,
+                num_wmape=float(wmape),
+                num_media=media,
+                num_coeficiente_variacao=coeficiente_variacao,
+                num_tendencia=tendencia,
+                num_forca_sazonalidade=forca_sazonalidade,
+                num_proporcao_zeros=proporcao_zeros,
+                num_changepoint_prior_scale=changepoint_prior_scale,
+                num_seasonality_prior_scale=seasonality_prior_scale,
+                ds_seasonality_mode=seasonality_mode
+            )
+
+            self.db.add(nova_metrica)
+            self.db.commit()
+            
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            print(f"❌ Erro ao salvar métricas para SKU {sku}: {str(e)}")
             raise e
