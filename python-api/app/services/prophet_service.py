@@ -1,11 +1,13 @@
 import numpy as np
 from app.repository.prophet_repository import ProphetRepository
 from app.utils.holiday import get_brazil_holidays
+from app.utils.incc import get_incc
 from app.utils.time import Time
 from prophet import Prophet
 from sqlalchemy.orm import Session
 
 br_holidays = get_brazil_holidays()
+incc = get_incc()
 
 
 class ProphetService:
@@ -41,7 +43,7 @@ class ProphetService:
             changepoint_prior_scale=0.05,
             holidays=br_holidays,
         )
-
+        
         if len(df_prophet) >= 24:
             model.add_seasonality(name="monthly", period=periods, fourier_order=5)
 
