@@ -9,18 +9,20 @@ from app.schemas.usuario import UsuarioCreate, UsuarioUpdate
 class UsuarioRepository:
     """
     Repository para operações de banco de dados com usuários
+    COM PROTEÇÃO PARA USUÁRIO BASE
     """
 
     def __init__(self, db_session: Session):
         self.db = db_session
 
-    def create(self, usuario_data: UsuarioCreate, senha_hash: str) -> Usuario:
+    def create(self, usuario_data: UsuarioCreate, senha_hash: str, is_base_admin: bool = False) -> Usuario:
         """
         Cria novo usuário no banco
         
         Args:
             usuario_data: Dados do usuário (UsuarioCreate schema)
             senha_hash: Hash bcrypt da senha
+            is_base_admin: Se True, marca como usuário base protegido
             
         Returns:
             Usuario criado
@@ -32,10 +34,11 @@ class UsuarioRepository:
         try:
             new_usuario = Usuario(
                 nome=usuario_data.nome,
-                email=usuario_data.email.lower(),  # Normaliza email
+                email=usuario_data.email.lower(),
                 senha_hash=senha_hash,
                 role=usuario_data.role.value,
                 ativo=usuario_data.ativo,
+                is_base_admin=is_base_admin,  # ← Define proteção
                 dt_criacao=datetime.utcnow()
             )
             
@@ -43,7 +46,8 @@ class UsuarioRepository:
             self.db.commit()
             self.db.refresh(new_usuario)
             
-            print(f"✅ Usuário criado: {new_usuario.email} (Role: {new_usuario.role})")
+            base_flag = " [USUÁRIO BASE - PROTEGIDO]" if is_base_admin else ""
+            print(f"✅ Usuário criado: {new_usuario.email} (Role: {new_usuario.role}){base_flag}")
             return new_usuario
         
         except IntegrityError:
@@ -101,6 +105,9 @@ class UsuarioRepository:
             
         Returns:
             Usuario atualizado ou None
+            
+        Raises:
+            ValueError: Tentativa de desativar usuário base
         """
         try:
             usuario = self.get_by_id(user_id)
@@ -108,6 +115,20 @@ class UsuarioRepository:
             if not usuario:
                 print(f"⚠️ Usuário não encontrado: {user_id}")
                 return None
+            
+            # 🔒 PROTEÇÃO: Impede desativação do usuário base
+            if usuario.is_base_admin and usuario_data.ativo is False:
+                raise ValueError(
+                    "❌ Operação negada: O usuário gestor base não pode ser desativado. "
+                    "Este usuário é essencial para a administração do sistema."
+                )
+            
+            # 🔒 PROTEÇÃO: Impede remoção do role gestao do usuário base
+            if usuario.is_base_admin and usuario_data.role and usuario_data.role.value != "gestao":
+                raise ValueError(
+                    "❌ Operação negada: O role do usuário gestor base não pode ser alterado. "
+                    "Este usuário deve permanecer como 'gestao'."
+                )
             
             # Atualiza apenas campos fornecidos
             if usuario_data.nome is not None:
@@ -128,6 +149,8 @@ class UsuarioRepository:
             print(f"✅ Usuário atualizado: {usuario.email}")
             return usuario
         
+        except ValueError:
+            raise  # Propaga erros de validação
         except IntegrityError:
             self.db.rollback()
             print(f"❌ Email já cadastrado: {usuario_data.email}")
@@ -147,6 +170,9 @@ class UsuarioRepository:
             
         Returns:
             True se desativado, False se não encontrado
+            
+        Raises:
+            ValueError: Tentativa de desativar usuário base
         """
         try:
             usuario = self.get_by_id(user_id)
@@ -155,12 +181,21 @@ class UsuarioRepository:
                 print(f"⚠️ Usuário não encontrado: {user_id}")
                 return False
             
+            # 🔒 PROTEÇÃO: Impede desativação do usuário base
+            if usuario.is_base_admin:
+                raise ValueError(
+                    f"❌ Operação negada: O usuário gestor base '{usuario.email}' não pode ser desativado. "
+                    "Este usuário é essencial para a administração do sistema e deve permanecer ativo."
+                )
+            
             usuario.ativo = False
             self.db.commit()
             
             print(f"✅ Usuário desativado: {usuario.email}")
             return True
         
+        except ValueError:
+            raise  # Propaga erro de proteção
         except SQLAlchemyError as e:
             self.db.rollback()
             print(f"❌ Erro ao desativar usuário: {str(e)}")
@@ -175,6 +210,9 @@ class UsuarioRepository:
             
         Returns:
             True se deletado, False se não encontrado
+            
+        Raises:
+            ValueError: Tentativa de deletar usuário base
         """
         try:
             usuario = self.get_by_id(user_id)
@@ -183,12 +221,21 @@ class UsuarioRepository:
                 print(f"⚠️ Usuário não encontrado: {user_id}")
                 return False
             
+            # 🔒 PROTEÇÃO MÁXIMA: Impede deleção do usuário base
+            if usuario.is_base_admin:
+                raise ValueError(
+                    f"❌ OPERAÇÃO BLOQUEADA: O usuário gestor base '{usuario.email}' NUNCA pode ser deletado. "
+                    "Este usuário é crítico para o sistema e está permanentemente protegido contra exclusão."
+                )
+            
             self.db.delete(usuario)
             self.db.commit()
             
             print(f"✅ Usuário deletado permanentemente: {usuario.email}")
             return True
         
+        except ValueError:
+            raise  # Propaga erro de proteção
         except SQLAlchemyError as e:
             self.db.rollback()
             print(f"❌ Erro ao deletar usuário: {str(e)}")
@@ -228,7 +275,8 @@ class UsuarioRepository:
             usuario.senha_hash = new_password_hash
             self.db.commit()
             
-            print(f"✅ Senha atualizada para: {usuario.email}")
+            base_info = " [USUÁRIO BASE]" if usuario.is_base_admin else ""
+            print(f"✅ Senha atualizada para: {usuario.email}{base_info}")
             return True
         
         except SQLAlchemyError as e:
@@ -247,3 +295,29 @@ class UsuarioRepository:
         except SQLAlchemyError as e:
             print(f"❌ Erro ao contar usuários por role: {str(e)}")
             return 0
+    
+    def get_base_admin(self) -> Optional[Usuario]:
+        """
+        Retorna o usuário gestor base (protegido)
+        
+        Returns:
+            Usuario base ou None se não existir
+        """
+        try:
+            return (
+                self.db.query(Usuario)
+                .filter(Usuario.is_base_admin == True, Usuario.role == "gestao")
+                .first()
+            )
+        except SQLAlchemyError as e:
+            print(f"❌ Erro ao buscar usuário base: {str(e)}")
+            return None
+    
+    def has_base_admin(self) -> bool:
+        """
+        Verifica se já existe um usuário gestor base
+        
+        Returns:
+            True se existe, False caso contrário
+        """
+        return self.get_base_admin() is not None

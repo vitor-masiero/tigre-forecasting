@@ -29,9 +29,9 @@ class UsuarioCreate(UsuarioBase):
     class Config:
         json_schema_extra = {
             "example": {
-                "nome": "João Silva",
-                "email": "joao.silva@tigre.com",
-                "role": "analista",
+                "nome": "Admin Tigre",
+                "email": "gestao@tigre.com",
+                "role": "gestao",
                 "senha": "senha123",
                 "ativo": True
             }
@@ -56,9 +56,9 @@ class UsuarioUpdate(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "nome": "João Silva Atualizado",
+                "nome": "Admin Tigre Atualizado",
                 "role": "gestao",
-                "ativo": False
+                "ativo": True
             }
         }
 
@@ -69,6 +69,7 @@ class UsuarioResponse(UsuarioBase):
     """
     id_usuario: str = Field(..., description="ID único do usuário")
     ativo: bool = Field(..., description="Status de ativação")
+    is_base_admin: bool = Field(default=False, description="Usuário base protegido")
     dt_criacao: datetime = Field(..., description="Data de criação")
     dt_ultimo_acesso: Optional[datetime] = Field(None, description="Último acesso")
 
@@ -77,10 +78,11 @@ class UsuarioResponse(UsuarioBase):
         json_schema_extra = {
             "example": {
                 "id_usuario": "123e4567-e89b-12d3-a456-426614174000",
-                "nome": "João Silva",
-                "email": "joao.silva@tigre.com",
-                "role": "analista",
+                "nome": "Admin Tigre",
+                "email": "gestao@tigre.com",
+                "role": "gestao",
                 "ativo": True,
+                "is_base_admin": True,
                 "dt_criacao": "2025-01-15T10:30:00",
                 "dt_ultimo_acesso": "2025-01-20T14:22:00"
             }
@@ -93,29 +95,27 @@ class UsuarioListResponse(BaseModel):
     """
     total: int = Field(..., description="Total de usuários")
     usuarios: list[UsuarioResponse] = Field(..., description="Lista de usuários")
+    base_admin: Optional[dict] = Field(None, description="Informações do usuário base protegido")
 
     class Config:
         json_schema_extra = {
             "example": {
-                "total": 2,
+                "total": 1,
+                "base_admin": {
+                    "email": "gestao@tigre.com",
+                    "nome": "Admin Tigre",
+                    "protected": True
+                },
                 "usuarios": [
                     {
                         "id_usuario": "123e4567-e89b-12d3-a456-426614174000",
-                        "nome": "João Silva",
-                        "email": "joao@tigre.com",
-                        "role": "analista",
-                        "ativo": True,
-                        "dt_criacao": "2025-01-15T10:30:00",
-                        "dt_ultimo_acesso": "2025-01-20T14:22:00"
-                    },
-                    {
-                        "id_usuario": "987e6543-e21b-98d7-a654-987654321000",
-                        "nome": "Maria Santos",
-                        "email": "maria@tigre.com",
+                        "nome": "Admin Tigre",
+                        "email": "gestao@tigre.com",
                         "role": "gestao",
                         "ativo": True,
-                        "dt_criacao": "2025-01-10T08:15:00",
-                        "dt_ultimo_acesso": "2025-01-21T09:45:00"
+                        "is_base_admin": True,
+                        "dt_criacao": "2025-01-10T08:00:00",
+                        "dt_ultimo_acesso": "2025-01-21T10:30:00"
                     }
                 ]
             }
@@ -128,11 +128,13 @@ class UsuarioDeleteResponse(BaseModel):
     """
     message: str = Field(..., description="Mensagem de confirmação")
     usuario_id: str = Field(..., description="ID do usuário deletado")
+    protected_warning: Optional[str] = Field(None, description="Aviso se houver proteção")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "message": "Usuário desativado com sucesso",
-                "usuario_id": "123e4567-e89b-12d3-a456-426614174000"
+                "usuario_id": "123e4567-e89b-12d3-a456-426614174000",
+                "protected_warning": None
             }
         }
