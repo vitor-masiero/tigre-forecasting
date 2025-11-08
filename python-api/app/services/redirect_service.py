@@ -1,5 +1,6 @@
 from app.services.prophet_service import ProphetService
 from app.services.aggregation_service import AggregationService
+from app.services.xgboost_service import XGBoostService
 
 
 class RedirectService:
@@ -19,7 +20,6 @@ class RedirectService:
         aggregation_info = None
         auto_selected = False
 
-        #Previsões Agregadas Não individual por SKU
         if aggregation_type != "sku":
             if model:
                 modelo_final = model.strip()
@@ -59,13 +59,12 @@ class RedirectService:
             else:
                 raise ValueError(f"Tipo de agregação inválido: {aggregation_type}")
             
-            run_id, forecast_df, time = RedirectService._execute_model(
+            run_id, forecast_df, time, metrics = RedirectService._execute_model(
                 modelo_final, db, df_aggregated, None, periods
             )
             
-            return run_id, forecast_df, time, aggregation_info, modelo_final, auto_selected
+            return run_id, forecast_df, time, aggregation_info, modelo_final, auto_selected, metrics
 
-        # Se não for agregado nem combinado, vai para individual
         else:
             if sku is None:
                     raise ValueError("SKU deve ser fornecido para previsão individual")
@@ -89,7 +88,6 @@ class RedirectService:
                     print(f"⚠️ SKU '{sku}' não encontrado na classificação ABC")
                     classe_abc = None
                 
-                # Redireciona baseado na classe ABC
                 if classe_abc == "A":
                     modelo_final = "Prophet"
                 elif classe_abc == "B":
@@ -97,14 +95,14 @@ class RedirectService:
                 elif classe_abc == "C":
                     modelo_final = "XGBoost"
                 else:
-                    # Fallback: se não houver ABC ou valor não mapeado
                     modelo_final = "Prophet"
 
-            run_id, forecast_df, time = RedirectService._execute_model(
+            run_id, forecast_df, time, metrics = RedirectService._execute_model(
                     modelo_final, db, df_processed, sku, periods
                 )
             
-            return run_id, forecast_df, time, None, modelo_final, auto_selected
+            return run_id, forecast_df, time, None, modelo_final, auto_selected, metrics
+    
     @staticmethod
     def _execute_model(
         model_name, db, df, sku, periods
@@ -113,8 +111,9 @@ class RedirectService:
             prophet_service = ProphetService(db)
             return prophet_service.make_prediction(df, periods=periods, sku=sku)
         elif model_name == "TSB":
-            return "TSB"
+            return "TSB", None, 0, None
         elif model_name == "XGBoost":
-            return "XGBOOST"
+            xgboost_service = XGBoostService(db)
+            return xgboost_service.make_prediction(df, periods=periods, sku=sku)
         else:
             raise ValueError(f"Modelo desconhecido: {model_name}")
