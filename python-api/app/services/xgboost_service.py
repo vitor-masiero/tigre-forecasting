@@ -100,6 +100,92 @@ class XGBoostService:
             'MAPE (%)': round(mape, 2)
         }
 
+    @staticmethod
+    def calculate_metrics_aggregated(df, y_true_col='y', y_pred_col='yhat', group_by=None):
+        """
+        Calcula métricas agregadas (WMAPE, Bias, MAE, etc.) para previsões.
+        
+        Args:
+            df: DataFrame com valores reais e previstos
+            y_true_col: Nome da coluna com valores reais
+            y_pred_col: Nome da coluna com valores previstos
+            group_by: Coluna para agrupar ('Familia', 'Processo', 'Classe_ABC', 'SKU')
+                     Se None, calcula métricas globais
+        
+        Returns:
+            Dict com métricas agregadas por grupo ou globais
+        """
+        if group_by is None:
+            y_true = df[y_true_col].values
+            y_pred = df[y_pred_col].values
+            metrics = XGBoostService.calculate_metrics(y_true, y_pred)
+            
+            return {
+                'metrics_global': metrics,
+                'total_observations': len(df)
+            }
+        
+        else:
+            if group_by not in df.columns:
+                raise ValueError(f"Coluna '{group_by}' não encontrada no DataFrame")
+            
+            results = []
+            
+            for group_name, group_df in df.groupby(group_by):
+                y_true = group_df[y_true_col].values
+                y_pred = group_df[y_pred_col].values
+                metrics = XGBoostService.calculate_metrics(y_true, y_pred)
+                
+                results.append({
+                    group_by: group_name,
+                    **metrics,
+                    'n_observations': len(group_df)
+                })
+            
+            results_df = pd.DataFrame(results).sort_values('WMAPE (%)', ascending=False)
+            
+            y_true_all = df[y_true_col].values
+            y_pred_all = df[y_pred_col].values
+            metrics_global = XGBoostService.calculate_metrics(y_true_all, y_pred_all)
+            
+            return {
+                'metrics_by_group': results_df.to_dict('records'),
+                'metrics_global': metrics_global,
+                'group_column': group_by
+            }
+
+    @staticmethod
+    def calculate_all_aggregations(df, y_true_col='y', y_pred_col='yhat', group_columns=None):
+        """
+        Calcula métricas para múltiplos níveis de agregação.
+        
+        Args:
+            df: DataFrame com valores reais e previstos
+            y_true_col: Nome da coluna com valores reais
+            y_pred_col: Nome da coluna com valores previstos
+            group_columns: Lista de colunas para agrupar
+                          Se None, usa ['Familia', 'Processo', 'Classe_ABC']
+        
+        Returns:
+            Dict com métricas para cada nível de agregação
+        """
+        if group_columns is None:
+            group_columns = ['Familia', 'Processo', 'Classe_ABC']
+        
+        results = {}
+        
+        results['global'] = XGBoostService.calculate_metrics_aggregated(
+            df, y_true_col, y_pred_col, group_by=None
+        )
+        
+        for col in group_columns:
+            if col in df.columns:
+                results[col.lower()] = XGBoostService.calculate_metrics_aggregated(
+                    df, y_true_col, y_pred_col, group_by=col
+                )
+        
+        return results
+
     def make_prediction(self, df, sku=None, periods=12, outlier_method='iqr', outlier_threshold=1.5, time=None, aggregation_info=None):
         time = Time()
 
@@ -114,6 +200,7 @@ class XGBoostService:
             print(f"Previsão individual para SKU: {sku}")
         else:  
             df_filtered = df.copy()
+            print(f"Previsão agregada para {len(df_filtered)} registros")
 
         if outlier_method != 'none':
             df_filtered = self._remove_outliers(df_filtered, method=outlier_method, threshold=outlier_threshold)
@@ -199,11 +286,31 @@ class XGBoostService:
                 n_estimators=300,
                 learning_rate=0.04
             )
+        else:
+            test_df = test.copy()
+            test_df['yhat'] = y_pred_test
+            test_df['y'] = y_test.values
+            
+            aggregated_metrics = self.calculate_all_aggregations(
+                test_df, 
+                y_true_col='y', 
+                y_pred_col='yhat',
+                group_columns=['Familia', 'Processo', 'Classe_ABC'] if all(col in test_df.columns for col in ['Familia', 'Processo', 'Classe_ABC']) else None
+            )
+            
+            print("\n📊 Métricas Agregadas:")
+            print(f"Global WMAPE: {aggregated_metrics['global']['metrics_global']['WMAPE (%)']}%")
+            
+            for group_name, group_data in aggregated_metrics.items():
+                if group_name != 'global' and 'metrics_by_group' in group_data:
+                    print(f"\n{group_name.upper()}:")
+                    for item in group_data['metrics_by_group'][:5]:
+                        print(f"  {item[group_data['group_column']]}: WMAPE = {item['WMAPE (%)']}%")
 
         time_elapsed = time.obter_tempo()
         print(f"✅ Previsão concluída em {time_elapsed:.2f}s")
 
-        return run_id, forecast_data, time_elapsed
+        return run_id, forecast_data, time_elapsed, metrics if sku else aggregated_metrics
 
     def predict_all_skus(self, df, periods=12, outlier_method='iqr', outlier_threshold=1.5):
         skus = np.sort(df["SKU"].unique())

@@ -116,3 +116,7 @@ class ForecastRunResponse(BaseModel):
         default=False, 
         description="Indica se o modelo foi selecionado automaticamente por ABC"
     )
+    metrics: Optional[dict] = Field(
+        default=None,
+        description="Métricas do modelo (WMAPE, MAE, RMSE, etc.)"
+    )

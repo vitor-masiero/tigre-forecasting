@@ -29,11 +29,16 @@ class ProphetService:
             print(f"Previsão individual para SKU: {sku}")
         else:  
             df_filtered = df.copy()
+            print(f"Previsão agregada para {len(df_filtered)} registros")
             
         df_prophet = df_filtered[["Data", "Quantidade"]].copy()
         df_prophet = df_prophet.rename(columns={"Data": "ds", "Quantidade": "y"})
         
         print(f"📊 Dados preparados: {len(df_prophet)} pontos de dados")
+        
+        split_idx = int(len(df_prophet) * 0.8)
+        train = df_prophet.iloc[:split_idx]
+        test = df_prophet.iloc[split_idx:]
 
         model = Prophet(
             yearly_seasonality=True,
@@ -47,8 +52,56 @@ class ProphetService:
         if len(df_prophet) >= 24:
             model.add_seasonality(name="monthly", period=periods, fourier_order=5)
 
-        model.fit(df_prophet)
+        model.fit(train)
+        
+        if len(test) > 0:
+            forecast_test = model.predict(test[['ds']])
+            
+            y_true = test['y'].values
+            y_pred = forecast_test['yhat'].values
+            
+            metrics = {
+                'WMAPE (%)': round(np.sum(np.abs(y_true - y_pred)) / np.sum(y_true) * 100, 2),
+                'Bias': round(np.mean(y_pred - y_true), 2),
+                'Bias (%)': round((np.sum(y_pred - y_true) / np.sum(y_true)) * 100, 2),
+                'MAE': round(np.mean(np.abs(y_true - y_pred)), 2),
+                'RMSE': round(np.sqrt(np.mean((y_true - y_pred) ** 2)), 2),
+                'MAPE (%)': round(np.mean(np.abs((y_true - y_pred) / (y_true + 1e-10))) * 100, 2)
+            }
+            
+            if not sku:
+                test_df = test.copy()
+                test_df['yhat'] = y_pred
+                
+                if all(col in df_filtered.columns for col in ['Familia', 'Processo', 'Classe_ABC']):
+                    test_df = test_df.merge(
+                        df_filtered[['Data', 'Familia', 'Processo', 'Classe_ABC']].rename(columns={'Data': 'ds'}),
+                        on='ds',
+                        how='left'
+                    )
+                    
+                    from app.services.xgboost_service import XGBoostService
+                    aggregated_metrics = XGBoostService.calculate_all_aggregations(
+                        test_df,
+                        y_true_col='y',
+                        y_pred_col='yhat',
+                        group_columns=['Familia', 'Processo', 'Classe_ABC']
+                    )
+                    
+                    print("\n📊 Métricas Agregadas:")
+                    print(f"Global WMAPE: {aggregated_metrics['global']['metrics_global']['WMAPE (%)']}%")
+                    
+                    for group_name, group_data in aggregated_metrics.items():
+                        if group_name != 'global' and 'metrics_by_group' in group_data:
+                            print(f"\n{group_name.upper()}:")
+                            for item in group_data['metrics_by_group'][:5]:
+                                print(f"  {item[group_data['group_column']]}: WMAPE = {item['WMAPE (%)']}%")
+                    
+                    metrics = aggregated_metrics
+        else:
+            metrics = None
 
+        model.fit(df_prophet)
         future = model.make_future_dataframe(
             periods=periods, freq="MS", include_history=False
         )
@@ -64,7 +117,7 @@ class ProphetService:
 
         print(f"✅ Previsão concluída em {time_elapsed:.2f}s")
 
-        return run_id, forecast, time_elapsed
+        return run_id, forecast, time_elapsed, metrics
 
     def predict_all_skus(self, df, periods=12):
         # Lista de SKUs únicos em ordem crescente
