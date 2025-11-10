@@ -514,3 +514,16 @@ class XGBoostService:
         
         print(f"🧹 Outliers removidos: {len(df) - len(df_clean)} pontos ({method})")
         return df_clean
+    def apply_filters(self, df, familia=None, processo=None, abc_class=None):
+        df_filtered = df.copy()
+        
+        if familia:
+            df_filtered = df_filtered[df_filtered['Familia'].isin(familia)]
+        
+        if processo:
+            df_filtered = df_filtered[df_filtered['Processo'].isin(processo)]
+        
+        if abc_class:
+            df_filtered = df_filtered[df_filtered['Classe_ABC'].isin(abc_class)]
+        
+        return df_filtered
