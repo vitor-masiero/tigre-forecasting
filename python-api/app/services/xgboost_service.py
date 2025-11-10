@@ -3,6 +3,8 @@ import pandas as pd
 from xgboost import XGBRegressor
 from app.repository.xgboost_repository import XGBoostRepository
 from app.utils.time import Time
+from app.utils.incc import get_incc_with_forecast
+from app.utils.selic import get_selic_with_forecast
 from sqlalchemy.orm import Session
 
 class XGBoostService:
@@ -64,13 +66,44 @@ class XGBoostService:
 
             g['trend_6'] = g[target].shift(1).rolling(window=6, min_periods=3).apply(rolling_trend, raw=False)
 
-            g = g.fillna(method='bfill').fillna(0)
             g = g.replace([np.inf, -np.inf], np.nan).fillna(method='bfill').fillna(0)
 
             enriched_dfs.append(g)
         
         df_enriched = pd.concat(enriched_dfs, ignore_index=True)
         return df_enriched
+
+    @staticmethod
+    def add_external_regressors(df, date_col='Data'):
+        df = df.copy()
+        df[date_col] = pd.to_datetime(df[date_col])
+        
+        max_date = df[date_col].max() + pd.DateOffset(months=24)
+        
+        incc_data = get_incc_with_forecast(end_date=max_date, forecast_periods=730)
+        selic_data = get_selic_with_forecast(end_date=max_date)
+        
+        incc_data['ds'] = pd.to_datetime(incc_data['ds'])
+        selic_data['ds'] = pd.to_datetime(selic_data['ds'])
+        
+        df['year_month'] = df[date_col].dt.to_period('M')
+        incc_data['year_month'] = incc_data['ds'].dt.to_period('M')
+        selic_data['year_month'] = selic_data['ds'].dt.to_period('M')
+        
+        incc_monthly = incc_data.groupby('year_month')['incc'].mean().reset_index()
+        selic_monthly = selic_data.groupby('year_month')['selic'].mean().reset_index()
+        
+        df = df.merge(incc_monthly, on='year_month', how='left')
+        df = df.merge(selic_monthly, on='year_month', how='left')
+        
+        df['incc'] = df['incc'].fillna(method='ffill').fillna(method='bfill')
+        df['selic'] = df['selic'].fillna(method='ffill').fillna(method='bfill')
+        
+        df = df.drop('year_month', axis=1)
+        
+        print(f"✅ Variáveis externas adicionadas: INCC e SELIC")
+        
+        return df
 
     @staticmethod
     def calculate_metrics(y_true, y_pred):
@@ -103,19 +136,6 @@ class XGBoostService:
 
     @staticmethod
     def calculate_metrics_aggregated(df, y_true_col='y', y_pred_col='yhat', group_by=None):
-        """
-        Calcula métricas agregadas (WMAPE, Bias, MAE, etc.) para previsões.
-        
-        Args:
-            df: DataFrame com valores reais e previstos
-            y_true_col: Nome da coluna com valores reais
-            y_pred_col: Nome da coluna com valores previstos
-            group_by: Coluna para agrupar ('Familia', 'Processo', 'Classe_ABC', 'SKU')
-                     Se None, calcula métricas globais
-        
-        Returns:
-            Dict com métricas agregadas por grupo ou globais
-        """
         if group_by is None:
             y_true = df[y_true_col].values
             y_pred = df[y_pred_col].values
@@ -157,19 +177,6 @@ class XGBoostService:
 
     @staticmethod
     def calculate_all_aggregations(df, y_true_col='y', y_pred_col='yhat', group_columns=None):
-        """
-        Calcula métricas para múltiplos níveis de agregação.
-        
-        Args:
-            df: DataFrame com valores reais e previstos
-            y_true_col: Nome da coluna com valores reais
-            y_pred_col: Nome da coluna com valores previstos
-            group_columns: Lista de colunas para agrupar
-                          Se None, usa ['Familia', 'Processo', 'Classe_ABC']
-        
-        Returns:
-            Dict com métricas para cada nível de agregação
-        """
         if group_columns is None:
             group_columns = ['Familia', 'Processo', 'Classe_ABC']
         
@@ -186,6 +193,39 @@ class XGBoostService:
                 )
         
         return results
+
+    @staticmethod
+    def calculate_trend(forecast_df):
+        if len(forecast_df) < 2:
+            return {
+                'slope': 0,
+                'direction': 'stable',
+                'percentage_change': 0
+            }
+        
+        y = forecast_df['yhat'].values
+        X = np.arange(len(y))
+        A = np.vstack([X, np.ones(len(X))]).T
+        slope, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
+        
+        first_value = y[0]
+        last_value = y[-1]
+        percentage_change = ((last_value - first_value) / first_value * 100) if first_value != 0 else 0
+        
+        if slope > 0.01:
+            direction = 'crescente'
+        elif slope < -0.01:
+            direction = 'decrescente'
+        else:
+            direction = 'estável'
+        
+        return {
+            'slope': round(float(slope), 4),
+            'direction': direction,
+            'percentage_change': round(float(percentage_change), 2),
+            'first_value': round(float(first_value), 2),
+            'last_value': round(float(last_value), 2)
+        }
 
     def make_prediction(self, df, sku=None, periods=12, outlier_method='iqr', outlier_threshold=1.5, time=None, aggregation_info=None):
         time = Time()
@@ -209,6 +249,7 @@ class XGBoostService:
         print(f"📊 Dados preparados: {len(df_filtered)} pontos de dados")
 
         df_enriched = self.enrich_features(df_filtered, target='Quantidade', date_col='Data')
+        df_enriched = self.add_external_regressors(df_enriched, date_col='Data')
         
         split_date = df_enriched['Data'].quantile(0.8)
         train = df_enriched[df_enriched['Data'] < split_date]
@@ -232,15 +273,39 @@ class XGBoostService:
 
         y_pred_test = model.predict(X_test)
         metrics = self.calculate_metrics(y_test, y_pred_test)
+        
+        feature_importance = pd.DataFrame({
+            'feature': feature_cols,
+            'importance': model.feature_importances_
+        }).sort_values('importance', ascending=False)
+        
+        feature_importance['importance_pct'] = (feature_importance['importance'] / feature_importance['importance'].sum() * 100).round(2)
+        
+        print("\n📊 Top 10 Features mais importantes:")
+        for idx, row in feature_importance.head(10).iterrows():
+            print(f"  {row['feature']}: {row['importance_pct']}%")
 
         last_date = df_enriched['Data'].max()
         future_dates = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=periods, freq='MS')
-
+        
+        max_future_date = future_dates[-1]
+        incc_future = get_incc_with_forecast(end_date=max_future_date, forecast_periods=730)
+        selic_future = get_selic_with_forecast(end_date=max_future_date)
+        
+        incc_future['ds'] = pd.to_datetime(incc_future['ds'])
+        selic_future['ds'] = pd.to_datetime(selic_future['ds'])
+        incc_future['year_month'] = incc_future['ds'].dt.to_period('M')
+        selic_future['year_month'] = selic_future['ds'].dt.to_period('M')
+        
+        incc_monthly = incc_future.groupby('year_month')['incc'].mean().to_dict()
+        selic_monthly = selic_future.groupby('year_month')['selic'].mean().to_dict()
+        
         historical_quantities = df_enriched['Quantidade'].tolist()
         future_predictions = []
 
         for i in range(periods):
             future_date = future_dates[i]
+            year_month = future_date.to_period('M')
             
             lag_1 = historical_quantities[-1] if len(historical_quantities) >= 1 else 0
             lag_3 = historical_quantities[-3] if len(historical_quantities) >= 3 else 0
@@ -285,6 +350,9 @@ class XGBoostService:
             feriados = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '12-25']
             is_holiday = 1 if future_date.strftime('%m-%d') in feriados else 0
             
+            incc_value = incc_monthly.get(year_month, df_enriched['incc'].iloc[-1])
+            selic_value = selic_monthly.get(year_month, df_enriched['selic'].iloc[-1])
+            
             future_row = pd.DataFrame([{
                 'lag_1': lag_1,
                 'lag_3': lag_3,
@@ -309,7 +377,9 @@ class XGBoostService:
                 'quarter_sin': quarter_sin,
                 'quarter_cos': quarter_cos,
                 'is_holiday': is_holiday,
-                'trend_6': trend_6
+                'trend_6': trend_6,
+                'incc': incc_value,
+                'selic': selic_value
             }])
             
             future_row = future_row.replace([np.inf, -np.inf], 0).fillna(0)
@@ -326,6 +396,8 @@ class XGBoostService:
             historical_quantities.append(pred)
 
         forecast_data = pd.DataFrame(future_predictions)
+        
+        trend_info = self.calculate_trend(forecast_data)
 
         identifier = sku if sku else "aggregated"
         run_id = self.saver.save_forecast_run("XGBoost", 1, identifier)
@@ -367,8 +439,12 @@ class XGBoostService:
 
         time_elapsed = time.obter_tempo()
         print(f"✅ Previsão concluída em {time_elapsed:.2f}s")
+        
+        result_metrics = metrics if sku else aggregated_metrics
+        result_metrics['feature_importance'] = feature_importance.to_dict('records')
+        result_metrics['trend'] = trend_info
 
-        return run_id, forecast_data, time_elapsed, metrics if sku else aggregated_metrics
+        return run_id, forecast_data, time_elapsed, result_metrics
 
     def predict_all_skus(self, df, periods=12, outlier_method='iqr', outlier_threshold=1.5):
         skus = np.sort(df["SKU"].unique())
@@ -431,6 +507,8 @@ class XGBoostService:
         elif method == 'mad':
             median = df_clean['Quantidade'].median()
             mad = np.median(np.abs(df_clean['Quantidade'] - median))
+            if mad == 0:
+                return df_clean
             modified_z_scores = 0.6745 * (df_clean['Quantidade'] - median) / mad
             df_clean = df_clean[np.abs(modified_z_scores) < threshold]
         
