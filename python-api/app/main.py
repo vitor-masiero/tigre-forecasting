@@ -1,11 +1,10 @@
-# main.py
 from app.config.db_config import DatabaseConfig
 from app.controllers import (
     prophet_controller,
     validation_controller,
+    xgboost_controller,
 )
 from app.controllers.auth_controller import router as auth_router, users_router
-# from app.middleware.auth_middleware import AuthMiddleware  # Descomente para ativar middleware global
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -29,28 +28,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ⚠️ MIDDLEWARE DE AUTENTICAÇÃO GLOBAL (Descomente para ativar)
-# Quando ativo, TODAS as rotas exceto públicas requerem autenticação
-# Rotas públicas: /, /docs, /openapi.json, /auth/login
-# app.add_middleware(AuthMiddleware)
-
-# Incluir routers
 app.include_router(prophet_controller.router)
 app.include_router(validation_controller.router)
-app.include_router(auth_router)  # Rotas de autenticação (/auth/*)
-app.include_router(users_router)  # Rotas de gestão de usuários (/users/*)
+app.include_router(xgboost_controller.router)
+app.include_router(auth_router)
+app.include_router(users_router)
 
 
 @app.on_event("startup")
 def on_startup():
     print("🚀 Iniciando aplicação...")
 
-    # Cria todas as tabelas (incluindo tbusuarios)
     DatabaseConfig.Base.metadata.create_all(bind=DatabaseConfig.get_engine())
     print("✅ Tabelas do banco de dados verificadas/criadas.")
     print("   - tbprevisao")
     print("   - tbpontosprevisao")
     print("   - tbusuarios")
+    print("   - tbmetricas")
 
 
 @app.get("/")
@@ -71,8 +65,10 @@ async def root():
             "delete": "/users/{user_id} (DELETE) - Apenas Gestão",
             "stats": "/users/statistics/overview - Apenas Gestão"
         },
+        "xgboost": {
+            "general_metrics": "/xgboost/metrics/general",
+            "metrics_by_sku": "/xgboost/metrics/by-sku?sku=SKU123",
+            "top_worst": "/xgboost/metrics/top-worst?limit=10"
+        },
         "docs": "/docs"
     }
-
-
-# Para rodar: uvicorn app.main:app --reload
