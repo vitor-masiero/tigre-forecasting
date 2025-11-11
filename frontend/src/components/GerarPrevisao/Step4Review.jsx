@@ -343,7 +343,7 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-gray-600">Tempo estimado</p>
-                  <p className="text-lg font-bold text-gray-900">1-2 min</p>
+                  <p className="text-lg font-bold text-gray-900">5-20 segundos</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Status</p>

@@ -1,87 +1,91 @@
-import React from "react";
-import { Zap, Lightbulb } from "lucide-react";
-
-export default function QuickActions() {
-  const actions = [
-    {
-      title: "Nova Previsão",
-      description:
-        "Gere previsões personalizadas com diferentes históricos temporais",
-      icon: "edit",
-      primary: true,
-    },
-    {
-      title: "Automação",
-      description: "Configure previsões automáticas recorrentes",
-      icon: Zap,
-      primary: false,
-    },
-    {
-      title: "IA Insights",
-      description:
-        "Detectamos um padrão sazonal forte. Considere ajustar estratégia para Q4.",
-      icon: Lightbulb,
-      primary: false,
-    },
+export default function InfluenceChart() {
+  const influences = [
+    { name: "Ano", value: 29.67, color: "bg-blue-500" },
+    { name: "Média Móvel 3m", value: 16.14, color: "bg-emerald-500" },
+    { name: "Taxa Cresc. 3m", value: 14.23, color: "bg-purple-500" },
+    { name: "Desvio Padrão 6m", value: 12.79, color: "bg-orange-500" },
+    { name: "Taxa Cresc. 1m", value: 6.0, color: "bg-pink-500" },
   ];
+
+  // Mapeia as classes do Tailwind para cores hexadecimais reais
+  const getColor = (colorClass) => {
+    const map = {
+      "bg-blue-500": "#3B82F6",
+      "bg-emerald-500": "#10B981",
+      "bg-purple-500": "#8B5CF6",
+      "bg-orange-500": "#F97316",
+      "bg-pink-500": "#EC4899",
+    };
+    return map[colorClass] || "#000";
+  };
+
+  const total = influences.reduce((acc, item) => acc + item.value, 0);
+  let currentAngle = 0;
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Ações Rápidas
+        Fatores Mais Influentes
       </h3>
-      <div className="space-y-3">
-        {actions.map((action, index) => (
-          <ActionButton key={index} {...action} />
-        ))}
-        <a
-          href="#"
-          className="text-blue-600 text-sm hover:underline block mt-2"
-        >
-          Ver Detalhes →
-        </a>
-      </div>
-    </div>
-  );
-}
 
-function ActionButton({ title, description, icon: Icon, primary }) {
-  const buttonClasses = primary
-    ? "w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg flex items-center gap-3 transition"
-    : "w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-3 rounded-lg flex items-center gap-3 transition";
+      <div className="flex items-center gap-6">
+        {/* Gráfico circular */}
+        <div className="relative w-48 h-48">
+          <svg viewBox="0 0 200 200" className="transform -rotate-90">
+            {influences.map((item, index) => {
+              const percentage = (item.value / total) * 100;
+              const angle = (percentage / 100) * 360;
+              const largeArcFlag = angle > 180 ? 1 : 0;
 
-  const renderIcon = () => {
-    if (Icon === "edit") {
-      return (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-          />
-        </svg>
-      );
-    }
-    return <Icon className="w-5 h-5" />;
-  };
+              const startX = 100 + 80 * Math.cos((currentAngle * Math.PI) / 180);
+              const startY = 100 + 80 * Math.sin((currentAngle * Math.PI) / 180);
+              const endX =
+                100 + 80 * Math.cos(((currentAngle + angle) * Math.PI) / 180);
+              const endY =
+                100 + 80 * Math.sin(((currentAngle + angle) * Math.PI) / 180);
 
-  return (
-    <button className={buttonClasses}>
-      {renderIcon()}
-      <div className="text-left flex-1">
-        <div className="font-medium">{title}</div>
-        <div
-          className={`text-xs ${primary ? "text-blue-100" : "text-gray-500"}`}
-        >
-          {description}
+              const path = `M 100 100 L ${startX} ${startY} A 80 80 0 ${largeArcFlag} 1 ${endX} ${endY} Z`;
+              currentAngle += angle;
+
+              return (
+                <path
+                  key={index}
+                  d={path}
+                  fill={getColor(item.color)}
+                  opacity="0.9"
+                />
+              );
+            })}
+            {/* Círculo central branco */}
+            <circle cx="100" cy="100" r="45" fill="white" />
+          </svg>
+
+          {/* Texto central */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">100%</div>
+              <div className="text-xs text-gray-500">Total</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Legenda */}
+        <div className="flex-1 space-y-2">
+          {influences.map((item, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded ${item.color}`}
+                ></div>
+                <span className="text-sm text-gray-700">{item.name}</span>
+              </div>
+              <span className="text-sm font-semibold text-gray-900">
+                {item.value.toFixed(2)}%
+              </span>
+            </div>
+          ))}
         </div>
       </div>
-    </button>
+    </div>
   );
 }

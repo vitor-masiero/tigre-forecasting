@@ -1,7 +1,7 @@
 import React from "react";
 import SalesChart from "./SalesChart";
-import QuickActions from "./QuickActions";
 import UpdateCard from "../Metrics/UpdateCard";
+import InfluenceChart from "./QuickActions";
 
 export default function ChartsSection() {
   return (
@@ -9,7 +9,7 @@ export default function ChartsSection() {
       <UpdateCard />
       <div className="grid grid-cols-3 gap-6 mb-6">
         <SalesChart />
-        <QuickActions />
+        <InfluenceChart />
       </div>
     </>
   );
