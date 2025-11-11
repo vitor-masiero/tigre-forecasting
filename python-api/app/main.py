@@ -3,6 +3,7 @@ from app.controllers import (
     prophet_controller,
     validation_controller,
     xgboost_controller,
+    import_controller,
 )
 from app.controllers.auth_controller import router as auth_router, users_router
 from fastapi import FastAPI
@@ -33,6 +34,7 @@ app.include_router(validation_controller.router)
 app.include_router(xgboost_controller.router)
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(import_controller.router)
 
 
 @app.on_event("startup")

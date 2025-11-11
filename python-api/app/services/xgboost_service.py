@@ -6,6 +6,9 @@ from app.utils.time import Time
 from app.utils.incc import get_incc_with_forecast
 from app.utils.selic import get_selic_with_forecast
 from sqlalchemy.orm import Session
+from sqlalchemy import text
+from app.models.feature_metadata import FeatureMetadata
+
 
 class XGBoostService:
     def __init__(self, db_session: Session):
@@ -104,6 +107,98 @@ class XGBoostService:
         print(f"✅ Variáveis externas adicionadas: INCC e SELIC")
         
         return df
+    
+    def add_custom_features(self, df, date_col='Data'):
+        df = df.copy()
+        df[date_col] = pd.to_datetime(df[date_col])
+        
+        # Busca todas as features disponíveis
+        features = self.db.query(FeatureMetadata).all()
+        
+        if not features:
+            print("⚠️ Nenhuma feature externa encontrada no banco")
+            return df
+        
+        print(f"🔍 Encontradas {len(features)} features externas")
+        
+        for feature in features:
+            try:
+                # Lê a tabela de feature do banco
+                query = text(f"SELECT * FROM {feature.table_name}")
+                feature_df = pd.read_sql(query, self.db.bind)
+                
+                # Normaliza a coluna de data
+                feature_df['date'] = pd.to_datetime(feature_df['date'])
+                
+                # Cria year_month para merge
+                df['year_month'] = df[date_col].dt.to_period('M')
+                feature_df['year_month'] = feature_df['date'].dt.to_period('M')
+                
+                # Agrupa por mês (caso tenha múltiplos valores)
+                value_cols = [col for col in feature_df.columns if col not in ['date', 'year_month']]
+                
+                for col in value_cols:
+                    feature_monthly = feature_df.groupby('year_month')[col].mean().reset_index()
+                    feature_monthly.rename(columns={col: f"{feature.feature_name}_{col}"}, inplace=True)
+                    
+                    # Merge com o dataframe principal
+                    df = df.merge(feature_monthly, on='year_month', how='left')
+                    
+                    # Preenche valores faltantes
+                    df[f"{feature.feature_name}_{col}"] = df[f"{feature.feature_name}_{col}"].fillna(method='ffill').fillna(method='bfill')
+                
+                print(f"✅ Feature '{feature.feature_name}' adicionada com sucesso")
+                
+            except Exception as e:
+                print(f"⚠️ Erro ao adicionar feature '{feature.feature_name}': {str(e)}")
+                continue
+        
+        # Remove coluna auxiliar
+        df = df.drop('year_month', axis=1)
+        
+        return df
+    def get_future_custom_features(self, future_date, df_enriched):
+        """Busca valores de features externas para uma data futura."""
+        features = self.db.query(FeatureMetadata).all()
+        feature_values = {}
+        
+        for feature in features:
+            try:
+                query = text(f"""
+                    SELECT * FROM {feature.table_name} 
+                    WHERE date <= :future_date 
+                    ORDER BY date DESC 
+                    LIMIT 1
+                """)
+                result = self.db.execute(query, {"future_date": future_date}).fetchone()
+                
+                if result:
+                    # Usa _mapping para acessar as colunas corretamente
+                    result_dict = dict(result._mapping)
+                    for col, value in result_dict.items():
+                        if col != 'date':
+                            feature_values[f"{feature.feature_name}_{col}"] = value
+                else:
+                    # NÃO encontrou dados futuros, usa último valor histórico
+                    for col in feature.columns:
+                        if col != 'date':
+                            feature_col_name = f"{feature.feature_name}_{col}"
+                            if feature_col_name in df_enriched.columns:
+                                feature_values[feature_col_name] = df_enriched[feature_col_name].iloc[-1]
+                            else:
+                                feature_values[feature_col_name] = 0
+                                
+            except Exception as e:
+                # Em caso de erro, usa último valor histórico como fallback
+                for col in feature.columns:
+                    if col != 'date':
+                        feature_col_name = f"{feature.feature_name}_{col}"
+                        if feature_col_name in df_enriched.columns:
+                            feature_values[feature_col_name] = df_enriched[feature_col_name].iloc[-1]
+                        else:
+                            feature_values[feature_col_name] = 0
+        
+        return feature_values
 
     @staticmethod
     def calculate_metrics(y_true, y_pred):
@@ -250,7 +345,8 @@ class XGBoostService:
 
         df_enriched = self.enrich_features(df_filtered, target='Quantidade', date_col='Data')
         df_enriched = self.add_external_regressors(df_enriched, date_col='Data')
-        
+        df_enriched = self.add_custom_features(df_enriched, date_col='Data')
+
         split_date = df_enriched['Data'].quantile(0.8)
         train = df_enriched[df_enriched['Data'] < split_date]
         test = df_enriched[df_enriched['Data'] >= split_date]
@@ -352,8 +448,12 @@ class XGBoostService:
             
             incc_value = incc_monthly.get(year_month, df_enriched['incc'].iloc[-1])
             selic_value = selic_monthly.get(year_month, df_enriched['selic'].iloc[-1])
-            
-            future_row = pd.DataFrame([{
+
+            # Busca valores das features customizadas para a data futura
+            custom_features = self.get_future_custom_features(future_date, df_enriched)
+
+            # Cria dicionário base com todas as features
+            future_data = {
                 'lag_1': lag_1,
                 'lag_3': lag_3,
                 'lag_6': lag_6,
@@ -380,9 +480,13 @@ class XGBoostService:
                 'trend_6': trend_6,
                 'incc': incc_value,
                 'selic': selic_value
-            }])
-            
-            future_row = future_row.replace([np.inf, -np.inf], 0).fillna(0)
+            }
+
+            # Adiciona as custom features ao dicionário
+            future_data.update(custom_features)
+
+            # Cria o DataFrame
+            future_row = pd.DataFrame([future_data])
             
             X_future = future_row[feature_cols]
             pred = model.predict(X_future)[0]
