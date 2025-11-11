@@ -1,8 +1,9 @@
 // ============================================
-// ARQUIVO: src/components/GerarPrevisao/Step4Review.jsx (CORRIGIDO)
+// ARQUIVO: src/components/GerarPrevisao/Step4Review.jsx (ATUALIZADO)
 // ============================================
+
 import React, { useState } from 'react';
-import { GRANULARITY_LEVELS, LINHAS, CLASSIFICACOES_ABC } from '../../utils/dataStructure';
+import { GRANULARITY_LEVELS, LINHAS, PROCESSOS_MAPPING, CLASSIFICACOES_ABC, extractNumericId } from '../../utils/dataStructure';
 import api from '../../utils/Api.js';
 
 export default function Step4Review({ formData, setJsonPredict, nextStep, prevStep }) {
@@ -13,7 +14,7 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
 
     const body = convertFormDataToPayload(formData);
 
-    let response, response_wmape;
+    let response;
 
     try {
       response = await api.post("/predict", body);
@@ -25,30 +26,15 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
 
     let json = response.data;
 
-    if (body?.sku) {
-      json.sku = body.sku;
+    if (body?.sku) json.sku = body.sku;
 
-      try {
-        response_wmape = await api.post("/validation/individual", { sku: body.sku });
-        json.wmape = Number(response_wmape.data.wmape);
-      } catch (err) {
-        console.error("Error details:", err.response || err);
-        setIsExecuting(false);
-        return alert("Ocorreu um erro ao executar a previsão. Verifique se a API está acessível.");
-      }
+    if (json.metrics?.global?.metrics_global) {
+      json.metrics = {
+        ...json.metrics,
+        ...json.metrics.global.metrics_global
+      };
 
-      // if (true) {
-      //   try {
-      //     response_wmape = await api.post("/validation/individual", { sku: body.sku });
-      //     json.wmape = Number(response_wmape.data.wmape);
-      //   } catch (err) {
-      //     console.error("Error details:", err.response || err);
-      //     setIsExecuting(false);
-      //     return alert("Ocorreu um erro ao executar a previsão. Verifique se a API está acessível.");
-      //   }
-      // } else {
-      //   json.wmape = Number((Math.random() * 100).toFixed(8));
-      // }
+      delete json.metrics.global;
     }
 
     setJsonPredict(json);
@@ -63,18 +49,13 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
       return m.charAt(0).toUpperCase() + m.slice(1);
     };
 
-    const extractId = (s) => {
-      if (!s || typeof s !== 'string') return s;
-      const m = s.match(/\d+/);
-      return m ? m[0] : s;
-    };
-
     const base = {
       periods: Number(formData.horizontePrevisao || 0),
       preview_rows: Number(formData.horizontePrevisao || 0),
       model: mapModel(formData.modeloPrevisao)
     };
 
+    // Agregação: todas
     if (formData.granularityLevel === 'todas') {
       return {
         ...base,
@@ -82,6 +63,7 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
       };
     }
 
+    // Agregação: por SKU
     if (formData.granularityLevel === 'por_sku') {
       const skus = formData.skusSelecionados || [];
       if (skus.length === 0) {
@@ -95,107 +77,115 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
       return payloads.length === 1 ? payloads[0] : payloads;
     }
 
+    // Agregação: combinação
     if (formData.granularityLevel === 'combinacao') {
-      const combos = formData.combinacoes || {};
-      const entries = [];
+      const { linha = [], processos = [], classificacoes = [] } = formData.combinacoes;
 
-      Object.entries(combos).forEach(([linhaId, selecoes]) => {
-        const familiaId = String(extractId(linhaId));
-        if (selecoes && selecoes._linha) {
-          entries.push({
-            ...base,
+      const payload = { ...base };
+
+      // Converter IDs de linhas para números
+      const familiasIds = linha.length > 0 ? linha.map(l => extractNumericId(l)) : null;
+
+      // Se tem linhas selecionadas
+      if (familiasIds && familiasIds.length > 0) {
+        // Só linhas
+        if (processos.length === 0 && classificacoes.length === 0) {
+          return {
+            ...payload,
             aggregation_type: 'familia',
-            familia: familiaId,
-            ...(Array.isArray(selecoes._classificacoes) && selecoes._classificacoes.length === 1
-              ? { abc_class: selecoes._classificacoes[0] }
-              : {})
-          });
-          return;
+            familia: familiasIds
+          };
         }
 
-        if (Array.isArray(selecoes._classificacoes) && selecoes._classificacoes.length > 0) {
-          selecoes._classificacoes.forEach(cls => {
-            entries.push({
-              ...base,
-              aggregation_type: 'combined',
-              familia: familiaId,
-              abc_class: cls
-            });
-          });
+        // Linhas + classificações (sem processos)
+        if (processos.length === 0 && classificacoes.length > 0) {
+          return {
+            ...payload,
+            aggregation_type: 'combined',
+            familia: familiasIds,
+            abc_class: classificacoes
+          };
         }
 
-        Object.keys(selecoes || {}).forEach(key => {
-          if (key.startsWith('_')) return;
-          const processoIdRaw = key;
-          const processoId = String(extractId(processoIdRaw));
-          const classificacoes = Array.isArray(selecoes[processoIdRaw]) ? selecoes[processoIdRaw] : [];
+        // Linhas + processos (sem classificações)
+        if (processos.length > 0 && classificacoes.length === 0) {
+          return {
+            ...payload,
+            aggregation_type: 'combined',
+            familia: familiasIds,
+            processo: processos
+          };
+        }
 
-          if (classificacoes.length === 0) {
-            entries.push({
-              ...base,
-              aggregation_type: 'combined',
-              familia: familiaId,
-              processo: processoId
-            });
-          } else {
-            classificacoes.forEach(cls => {
-              entries.push({
-                ...base,
-                aggregation_type: 'combined',
-                familia: familiaId,
-                processo: processoId,
-                abc_class: cls
-              });
-            });
-          }
-        });
-      });
-
-      if (entries.length === 0) {
-        return { ...base, aggregation_type: 'all' };
+        // Linhas + processos + classificações
+        if (processos.length > 0 && classificacoes.length > 0) {
+          return {
+            ...payload,
+            aggregation_type: 'combined',
+            familia: familiasIds,
+            processo: processos,
+            abc_class: classificacoes
+          };
+        }
       }
-      return entries.length === 1 ? entries[0] : entries;
+
+      // Sem linha
+      // Só processos
+      if (processos.length > 0 && classificacoes.length === 0) {
+        return {
+          ...payload,
+          aggregation_type: 'combined',
+          processo: processos
+        };
+      }
+
+      // Só classificações
+      if (processos.length === 0 && classificacoes.length > 0) {
+        return {
+          ...payload,
+          aggregation_type: 'combined',
+          abc_class: classificacoes
+        };
+      }
+
+      // Processos + classificações
+      if (processos.length > 0 && classificacoes.length > 0) {
+        return {
+          ...payload,
+          aggregation_type: 'combined',
+          processo: processos,
+          abc_class: classificacoes
+        };
+      }
+
+      // Fallback
+      return { ...base, aggregation_type: 'all' };
     }
 
     return { ...base, aggregation_type: 'all' };
-  }
+  };
 
   const getDataSelectionSummary = () => {
-    const level = GRANULARITY_LEVELS[formData.granularityLevel.toUpperCase()];
-
     if (formData.granularityLevel === 'todas') {
       return 'Todas as linhas, processos e classificações';
     }
 
     if (formData.granularityLevel === 'combinacao') {
-      const totalLinhas = Object.keys(formData.combinacoes).length;
-      const totalProcessos = Object.values(formData.combinacoes).reduce(
-        (sum, processos) => sum + Object.keys(processos).filter(k => !k.startsWith('_')).length, 0
-      );
-      return `${totalLinhas} linha(s) • ${totalProcessos} processo(s) selecionado(s)`;
+      const { linha = [], processos = [], classificacoes = [] } = formData.combinacoes;
+
+      const parts = [];
+      if (linha.length > 0) parts.push(`${linha.length} linha(s)`);
+      if (processos.length > 0) parts.push(`${processos.length} processo(s)`);
+      if (classificacoes.length > 0) parts.push(`${classificacoes.length} classificação(s)`);
+
+      return parts.length > 0 ? parts.join(' • ') : 'Nenhuma seleção';
     }
 
     if (formData.granularityLevel === 'por_sku') {
       return `${formData.skusSelecionados.length} SKU(s) individual(is)`;
     }
 
-    return level.label;
-  };
-
-  const getActiveFactors = () => {
-    return Object.entries(formData.fatoresExternos)
-      .filter(([_, value]) => value)
-      .map(([key]) => {
-        const labels = {
-          dadosMarketing: 'Marketing',
-          dadosClimaticos: 'Climáticos',
-          eventosSetoriais: 'Eventos',
-          sazonalidade: 'Sazonalidade',
-          calendarioFeriados: 'Feriados',
-          indicadoresMacro: 'Macroeconômicos'
-        };
-        return labels[key];
-      });
+    return GRANULARITY_LEVELS[formData.granularityLevel.toUpperCase()]?.label || 'Não especificado';
   };
 
   return (
@@ -214,11 +204,7 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
             </svg>
             Configurações Básicas
           </h3>
-          <div className="grid grid-cols-3 gap-6">
-            {/* <div>
-              <p className="text-sm text-gray-600 mb-1">Período Histórico</p>
-              <p className="text-lg font-semibold text-gray-900">{formData.periodoHistorico} meses</p>
-            </div> */}
+          <div className="grid grid-cols-2 gap-6">
             <div>
               <p className="text-sm text-gray-600 mb-1">Horizonte de Previsão</p>
               <p className="text-lg font-semibold text-gray-900">{formData.horizontePrevisao} meses</p>
@@ -244,89 +230,82 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
           </div>
 
           {/* Detalhamento de Combinações */}
-          {formData.granularityLevel === 'combinacao' && Object.keys(formData.combinacoes).length > 0 && (
+          {formData.granularityLevel === 'combinacao' && (
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600 mb-3">Combinações Selecionadas:</p>
+              <p className="text-sm text-gray-600 mb-3">Detalhes da Seleção:</p>
               <div className="space-y-3">
-                {Object.entries(formData.combinacoes).map(([linhaId, selecoes]) => {
-                  const linha = Object.values(LINHAS).find(l => l.id === linhaId);
-                  if (!linha) return null;
-
-                  const isLinhaCompleta = selecoes['_linha'] !== undefined;
-                  const classificacoesLinha = selecoes['_classificacoes'] || [];
-                  const processos = Object.keys(selecoes).filter(k => !k.startsWith('_'));
-
-                  return (
-                    <div key={linhaId} className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-sm font-semibold text-gray-900 mb-3">{linha.label}</p>
-
-                      {/* Linha Completa */}
-                      {isLinhaCompleta && (
-                        <div className="bg-blue-100 border border-blue-300 rounded-lg p-2 mb-2">
-                          <p className="text-sm text-blue-900 font-medium">
-                            ✓ Linha completa (todos os processos e classificações)
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Classificações no nível da linha */}
-                      {classificacoesLinha.length > 0 && (
-                        <div className="bg-white rounded-lg p-2 border border-gray-200 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-700">Classificações gerais:</span>
-                            {classificacoesLinha.map(classificacao => {
-                              const classConfig = CLASSIFICACOES_ABC[classificacao];
-                              return (
-                                <span
-                                  key={classificacao}
-                                  className={`text-xs px-2 py-1 bg-${classConfig.color}-100 text-${classConfig.color}-800 rounded font-medium`}
-                                >
-                                  {classificacao}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Processos específicos */}
-                      {processos.length > 0 && !isLinhaCompleta && (
-                        <div className="space-y-2">
-                          {processos.map(processoId => {
-                            const processo = linha.processos.find(p => p.id === processoId);
-                            const classificacoes = selecoes[processoId];
-                            if (!processo) return null;
-
-                            return (
-                              <div key={processoId} className="flex items-center gap-3 bg-white rounded-lg p-2 border border-gray-200">
-                                <span className="text-sm font-medium text-gray-700 min-w-[100px]">
-                                  {processo.label}
-                                </span>
-                                <div className="flex gap-2">
-                                  {classificacoes.length > 0 ? (
-                                    classificacoes.map(classificacao => {
-                                      const classConfig = CLASSIFICACOES_ABC[classificacao];
-                                      return (
-                                        <span
-                                          key={classificacao}
-                                          className={`text-xs px-2 py-1 bg-${classConfig.color}-100 text-${classConfig.color}-800 rounded font-medium`}
-                                        >
-                                          {classificacao}
-                                        </span>
-                                      );
-                                    })
-                                  ) : (
-                                    <span className="text-xs text-gray-500 italic">Todas as classificações</span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                {/* Linhas */}
+                {formData.combinacoes.linha && formData.combinacoes.linha.length > 0 && (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border-l-4 border-blue-500 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
+                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                        </svg>
+                      </div>
+                      <p className="text-base font-bold text-blue-900">Linhas Selecionadas</p>
                     </div>
-                  );
-                })}
+                    <div className="flex flex-wrap gap-2 ml-13">
+                      {formData.combinacoes.linha.map(linhaId => (
+                        <span key={linhaId} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold shadow-md hover:bg-blue-700 transition">
+                          {LINHAS[linhaId]?.label || linhaId}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Processos */}
+                {formData.combinacoes.processos && formData.combinacoes.processos.length > 0 && (
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border-l-4 border-purple-500 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center shadow-md">
+                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                      </div>
+                      <p className="text-base font-bold text-purple-900">Processos Selecionados</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 ml-13">
+                      {formData.combinacoes.processos.map(procId => (
+                        <span key={procId} className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold shadow-md hover:bg-purple-700 transition">
+                          {PROCESSOS_MAPPING[procId]?.label || `Processo ${procId}`}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Classificações */}
+                {formData.combinacoes.classificacoes && formData.combinacoes.classificacoes.length > 0 && (
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border-l-4 border-amber-500 shadow-sm">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center shadow-md">
+                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                        </svg>
+                      </div>
+                      <p className="text-base font-bold text-amber-900">Classificações ABC</p>
+                    </div>
+                    <div className="flex gap-2 ml-13">
+                      {formData.combinacoes.classificacoes.map(cls => {
+                        const colors = {
+                          A: 'bg-emerald-600 hover:bg-emerald-700',
+                          B: 'bg-yellow-500 hover:bg-yellow-600',
+                          C: 'bg-rose-600 hover:bg-rose-700'
+                        };
+                        return (
+                          <span
+                            key={cls}
+                            className={`inline-flex items-center px-5 py-2 ${colors[cls]} text-white rounded-lg text-sm font-bold shadow-md transition`}
+                          >
+                            Classe {cls}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -348,33 +327,6 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
                 )}
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Fatores Externos */}
-        <div className="border border-gray-200 rounded-lg p-6">
-          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <svg className="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-            </svg>
-            Fatores Externos
-          </h3>
-          {getActiveFactors().length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {getActiveFactors().map(factor => (
-                <span
-                  key={factor}
-                  className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium"
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                  {factor}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-600">Nenhum fator externo selecionado</p>
           )}
         </div>
 

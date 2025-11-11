@@ -32,14 +32,6 @@ export default function ConfigurationSteps({
         />
       )}
       {currentStep === 3 && (
-        <Step3Factors
-          formData={formData}
-          updateFormData={updateFormData}
-          nextStep={nextStep}
-          prevStep={prevStep}
-        />
-      )}
-      {currentStep === 4 && (
         <Step4Review
           formData={formData}
           setJsonPredict={setJsonPredict}
@@ -47,7 +39,7 @@ export default function ConfigurationSteps({
           prevStep={prevStep}
         />
       )}
-      {currentStep === 5 && (
+      {currentStep === 4 && (
         <Step5Result
           jsonPredict={jsonPredict}
         />

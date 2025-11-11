@@ -60,7 +60,7 @@ export default function Step1Basic({ formData, updateFormData, nextStep }) {
             {[
               // { value: 'automatico', label: 'Automático', desc: 'Melhor Fit' },
               // { value: 'arima', label: 'ARIMA', desc: 'Estatístico' },
-              { value: 'prophet', label: 'Prophet', desc: 'Facebook' },
+              { value: 'XGBoost', label: 'XGBoost', desc: '' },
               // { value: 'ensemble', label: 'Ensemble', desc: 'Combinado' }
             ].map(model => (
               <button

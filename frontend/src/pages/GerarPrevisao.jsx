@@ -7,7 +7,7 @@ export default function GerarPrevisao() {
   const [formData, setFormData] = useState({
     periodoHistorico: '12',
     horizontePrevisao: '12',
-    modeloPrevisao: 'prophet',
+    modeloPrevisao: 'XGBoost',
     granularityLevel: 'todas',
     combinacoes: {}, // { linha_1: { processo_1: ['A', 'B'], processo_2: ['C'] } }
     skusSelecionados: [],

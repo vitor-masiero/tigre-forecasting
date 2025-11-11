@@ -5,6 +5,7 @@ import { ptBR } from 'date-fns/locale';
 
 export default function Step5Result({ jsonPredict }) {
   const chartRef = useRef(null);
+  const pieChartRef = useRef(null);
 
   const getWmapeColor = (wmape) => {
     if (!wmape) return null;
@@ -15,8 +16,7 @@ export default function Step5Result({ jsonPredict }) {
   };
 
   const retornaAgregacao = (agr) => {
-    console.log(agr);
-    switch(agr) {
+    switch (agr) {
       case "familia":
         return "Linha";
       case "processo":
@@ -28,8 +28,40 @@ export default function Step5Result({ jsonPredict }) {
       default:
         return "Combinação";
     }
-  }
+  };
 
+  // Função para traduzir nomes das features
+  const traduzirFeature = (nome) => {
+    const traducoes = {
+      growth_rate: "Taxa de crescimento",
+      rolling_mean: "Média móvel",
+      rolling_std: "Desvio padrão móvel",
+      trend: "Tendência",
+      lag: "Defasagem",
+      selic: "Taxa Selic",
+      incc: "Índice INCC",
+      month: "Mês",
+      month_sin: "Seno do mês",
+      month_cos: "Cosseno do mês",
+      day_of_year: "Dia do ano",
+      quarter: "Trimestre",
+      year: "Ano",
+      week_of_year: "Semana do ano",
+      quarter_sin: "Seno do trimestre",
+      quarter_cos: "Cosseno do trimestre",
+      is_holiday: "Feriado",
+    };
+
+    const match = nome.match(/([a-z_]+)_(\d+)/);
+    if (match) {
+      const base = traducoes[match[1]] || match[1];
+      return `${base} de ${match[2]} meses`;
+    }
+
+    return traducoes[nome] || nome;
+  };
+
+  // Gráfico de linhas principal (previsão + tendência)
   useEffect(() => {
     if (!jsonPredict?.preview) return;
 
@@ -43,32 +75,91 @@ export default function Step5Result({ jsonPredict }) {
       type: 'line',
       data: {
         labels,
-        datasets: [{
-          label: 'Previsão',
-          data,
-          borderColor: 'rgb(79, 70, 229)',
-          backgroundColor: 'rgba(79, 70, 229, 0.1)',
-          tension: 0.1,
-          fill: true
-        }]
+        datasets: [
+          {
+            label: 'Previsão',
+            data,
+            borderColor: 'rgb(79, 70, 229)',
+            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+            tension: 0.1,
+            fill: true
+          },
+          {
+            label: 'Tendência',
+            data: (() => {
+              const firstValue = jsonPredict.metrics.trend.first_value;
+              const lastValue = jsonPredict.metrics.trend.last_value;
+              const n = labels.length;
+              const trendData = [];
+              for (let i = 0; i < n; i++) {
+                const value = firstValue + (lastValue - firstValue) * (i / (n - 1));
+                trendData.push(value);
+              }
+              return trendData;
+            })(),
+            borderColor: 'rgb(239, 68, 68)',
+            borderDash: [6, 6],
+            pointRadius: 0,
+            borderWidth: 2,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'top' },
+          title: { display: true, text: 'Gráfico da Previsão com Tendência' }
+        },
+        scales: { y: { beginAtZero: false } }
+      }
+    });
+
+    return () => chart.destroy();
+  }, [jsonPredict]);
+
+  // Gráfico de pizza das importâncias
+  useEffect(() => {
+    if (!jsonPredict?.metrics?.feature_importance) return;
+
+    const features = jsonPredict.metrics.feature_importance
+      .filter(f => f.importance_pct > 0);
+
+    if (!features.length) return;
+
+    const ctx = pieChartRef.current.getContext('2d');
+    const labels = features.map(f => traduzirFeature(f.feature));
+    const data = features.map(f => f.importance_pct);
+
+    const backgroundColors = labels.map((_, i) =>
+      `hsl(${(i * 40) % 360}, 70%, 60%)`
+    );
+
+    const chart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Importância (%)',
+            data,
+            backgroundColor: backgroundColors,
+            borderWidth: 1,
+          },
+        ],
       },
       options: {
         responsive: true,
         plugins: {
           legend: {
-            position: 'top',
+            position: 'right',
           },
           title: {
             display: true,
-            text: 'Gráfico da Previsão'
-          }
+            text: 'Importância das Variáveis (%)',
+          },
         },
-        scales: {
-          y: {
-            beginAtZero: false
-          }
-        }
-      }
+      },
     });
 
     return () => chart.destroy();
@@ -91,18 +182,27 @@ export default function Step5Result({ jsonPredict }) {
         )}
       </div>
 
+      {/* Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {jsonPredict.wmape && (
-          <div className={`rounded-xl p-6 shadow-sm transition-all hover:shadow-md ${getWmapeColor(jsonPredict.wmape)}`}>
+        {jsonPredict.metrics['WMAPE (%)'] && (
+          <div
+            className={`rounded-xl p-6 shadow-sm transition-all hover:shadow-md ${getWmapeColor(
+              jsonPredict.metrics['WMAPE (%)']
+            )}`}
+          >
             <p className="text-sm font-medium mb-1">WMAPE</p>
-            <p className="text-3xl font-bold">{jsonPredict.wmape.toFixed(2)}%</p>
+            <p className="text-3xl font-bold">
+              {jsonPredict.metrics['WMAPE (%)'].toFixed(2)}%
+            </p>
           </div>
         )}
 
         {jsonPredict.model_used && (
           <div className="bg-blue-200/50 rounded-xl p-6 shadow-sm transition-all hover:shadow-md">
             <p className="text-sm text-blue-800 font-medium mb-1">Modelo</p>
-            <p className="text-xl text-blue-900 font-semibold">{jsonPredict.model_used}</p>
+            <p className="text-xl text-blue-900 font-semibold">
+              {jsonPredict.model_used}
+            </p>
             {jsonPredict.auto_selected !== undefined && (
               <p className="text-sm text-blue-700 mt-2">
                 {jsonPredict.auto_selected ? 'Seleção Automática' : 'Seleção Manual'}
@@ -124,122 +224,19 @@ export default function Step5Result({ jsonPredict }) {
             )}
           </div>
         )}
-
-        {jsonPredict.aggregation_info?.type === "all_products" && (
-          <div className="bg-purple-200/50 rounded-xl p-6 shadow-sm transition-all hover:shadow-md">
-            <p className="text-sm text-purple-800 font-medium mb-1">SKUs</p>
-            <p className="text-xl text-purple-900 font-semibold">
-              Todos
-            </p>
-          </div>
-        )}
-
-        {jsonPredict?.sku && (
-          <div className="bg-purple-200/50 rounded-xl p-6 shadow-sm transition-all hover:shadow-md">
-            <p className="text-sm text-purple-800 font-medium mb-1">SKU</p>
-            <p className="text-xl text-purple-900 font-semibold">
-              {jsonPredict.sku}
-            </p>
-            <p className="text-sm text-purple-700 mt-2">
-              SKU Individual
-            </p>
-          </div>
-        )}
       </div>
 
-{jsonPredict.aggregation_info && (
-  <div className="mb-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 shadow-sm">
-    <h3 className="text-lg font-semibold text-gray-900 mb-4">Detalhes da Agregação</h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {jsonPredict.aggregation_info.date_range && (
-        <div>
-          <p className="text-sm text-gray-600">Período</p>
-          <p className="font-medium">
-            {`${format(new Date(jsonPredict.aggregation_info.date_range.start), "dd/MM/yyyy")} - ${format(new Date(jsonPredict.aggregation_info.date_range.end), "dd/MM/yyyy")}`}
-          </p>
-        </div>
-      )}
-      {jsonPredict.aggregation_info.total_quantity && (
-        <div>
-          <p className="text-sm text-gray-600">Quantidade Total</p>
-          <p className="font-medium">{jsonPredict.aggregation_info.total_quantity.toLocaleString()}</p>
-        </div>
-      )}
-
-      <div className="col-span-2 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {jsonPredict.aggregation_info.familia && (
-            <div className="border border-gray-200 rounded-lg p-6">
-              <p className="text-sm text-gray-600 mb-1">Linha</p>
-              <p className="font-medium text-indigo-700">{jsonPredict.aggregation_info.familia}</p>
-            </div>
-          )}
-          {jsonPredict.aggregation_info.processo && (
-            <div className="border border-gray-200 rounded-lg p-6">
-              <p className="text-sm text-gray-600 mb-1">Processo</p>
-              <p className="font-medium text-indigo-700">{jsonPredict.aggregation_info.processo}</p>
-            </div>
-          )}
-          {jsonPredict.aggregation_info.abc_class && (
-            <div className="border border-gray-200 rounded-lg p-6">
-              <p className="text-sm text-gray-600 mb-1">Classe ABC</p>
-              <p className="font-medium text-indigo-700">{jsonPredict.aggregation_info.abc_class}</p>
-            </div>
-          )}
-        </div>
-
-        {(jsonPredict.aggregation_info.familias ||
-          jsonPredict.aggregation_info.processos ||
-          jsonPredict.aggregation_info.skus) && (
-          <div className="space-y-4">
-            {jsonPredict.aggregation_info.familias && (
-              <div className="border border-gray-200 rounded-lg p-6">
-                <p className="text-sm text-gray-600 mb-2">Linhas Selecionadas</p>
-                <div className="flex flex-wrap gap-2">
-                  {jsonPredict.aggregation_info.familias.map((familia, index) => (
-                    <span key={index} className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
-                      {familia}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {jsonPredict.aggregation_info.processos && (
-              <div className="border border-gray-200 rounded-lg p-6">
-                <p className="text-sm text-gray-600 mb-2">Processos Selecionados</p>
-                <div className="flex flex-wrap gap-2">
-                  {jsonPredict.aggregation_info.processos.map((processo, index) => (
-                    <span key={index} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
-                      {processo}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {jsonPredict.aggregation_info.skus && (
-              <div className="border border-gray-200 rounded-lg p-6">
-                <p className="text-sm text-gray-600 mb-2">SKUs Selecionados</p>
-                <div className="flex flex-wrap gap-2">
-                  {jsonPredict.aggregation_info.skus.map((sku, index) => (
-                    <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                      {sku}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-)}
-
+      {/* GRÁFICO DE PREVISÃO */}
       {jsonPredict.preview && (
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <canvas ref={chartRef} />
+        </div>
+      )}
+
+      {/* GRÁFICO DE IMPORTÂNCIA */}
+      {jsonPredict.metrics?.feature_importance && (
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm mb-10">
+          <canvas ref={pieChartRef} />
         </div>
       )}
     </div>

@@ -4,9 +4,8 @@ export default function ProgressBar({ currentStep, totalSteps }) {
   const steps = [
     { number: 1, label: 'Configuração Básica' },
     { number: 2, label: 'Agregação' },
-    { number: 3, label: 'Fatores Externos' },
-    { number: 4, label: 'Revisão' },
-    { number: 5, label: 'Resultado' }
+    { number: 3, label: 'Revisão' },
+    { number: 4, label: 'Resultado' }
   ];
 
   return (

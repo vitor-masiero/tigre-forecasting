@@ -14,7 +14,6 @@ export default function ImportarDados() {
           <UploadCard />
           <ScriptsCard />
         </div>
-        <ImportHistoryTable />
         <DataValidationCard />
       </div>
     </div>

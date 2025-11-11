@@ -6,6 +6,7 @@
     "axios": "^1.12.2",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
+    "convert-csv-to-json": "^3.14.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.263.1",
     "react": "^18.3.1",
