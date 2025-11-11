@@ -400,7 +400,11 @@ class XGBoostService:
         trend_info = self.calculate_trend(forecast_data)
 
         identifier = sku if sku else "aggregated"
-        run_id = self.saver.save_forecast_run("XGBoost", 1, identifier)
+        if 'SKU' in df_filtered.columns:
+            num_skus = int(df_filtered['SKU'].nunique())
+        else:
+            num_skus = 1
+        run_id = self.saver.save_forecast_run("XGBoost", num_skus, identifier)
         
         if sku:
             self.saver.salvar_metricas_sku(

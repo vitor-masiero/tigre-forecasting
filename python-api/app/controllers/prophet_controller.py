@@ -18,6 +18,12 @@ class ProphetController:
 
         return "OK", df_processed.to_dict(orient="records")
 
+    @router.get("/previsoes")
+    def get_previsoes(db: Session = Depends(get_db)):
+        df_previsoes = QueryRepository.get_previsoes_data()
+        df_previsoes = df_previsoes.rename(columns={"num_wmape": "SKU/Tipo"})
+        return df_previsoes.to_dict(orient="records")
+
     @router.post("/predict", response_model=ForecastRunResponse)
     def predict(payload: ForecastRequest, db: Session = Depends(get_db)):
         """
