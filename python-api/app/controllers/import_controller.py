@@ -51,3 +51,26 @@ class ImportController:
     async def list_external_features(db: Session = Depends(get_db)):
         manager = ImportService(db)
         return manager.list_features()
+
+    # Adicione no import_controller.py
+
+    @router.post("/upload/historical-data")
+    async def import_historical_data(
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db)
+    ):
+        """
+        Importa dados históricos de vendas.
+        Aceita formato wide (colunas de datas) ou long (periodo, cdproduto, valor).
+        """
+        ext = validate_file_extension(file.filename)
+        manager = ImportService(db)
+
+        try:
+            result = await manager.processar_dados_historicos(
+                file=file,
+                file_extension=ext
+            )
+            return result
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
