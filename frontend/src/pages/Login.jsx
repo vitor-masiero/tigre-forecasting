@@ -143,9 +143,9 @@ export default function Login() {
 
           {/* Informações de Teste */}
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center mb-3">Contas de teste disponíveis:</p>
+            <p className="text-xs text-gray-500 text-center mb-2">Contas de teste disponíveis:</p>
             <div className="space-y-2 text-xs">
-              <div className="bg-gray-50 p-2 rounded">
+              <div className="bg-gray-50 rounded text-center">
                 <span className="font-semibold text-gray-700">Admin:</span> admin@tigre.com / senha123
               </div>
             </div>
