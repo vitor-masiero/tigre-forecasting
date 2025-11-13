@@ -32,12 +32,12 @@ export default function Login() {
     }
 
     const result = await login(formData.email, formData.senha);
-    
+
     if (!result.success) {
       setError(result.message);
     }
     // Se success === true, o AuthContext já redireciona automaticamente
-    
+
     setLoading(false);
   };
 
@@ -146,13 +146,7 @@ export default function Login() {
             <p className="text-xs text-gray-500 text-center mb-3">Contas de teste disponíveis:</p>
             <div className="space-y-2 text-xs">
               <div className="bg-gray-50 p-2 rounded">
-                <span className="font-semibold text-gray-700">Gestão:</span> gestao@tigre.com / senha123
-              </div>
-              <div className="bg-gray-50 p-2 rounded">
-                <span className="font-semibold text-gray-700">Analista:</span> analista@tigre.com / senha123
-              </div>
-              <div className="bg-gray-50 p-2 rounded">
-                <span className="font-semibold text-gray-700">Comercial:</span> comercial@tigre.com / senha123
+                <span className="font-semibold text-gray-700">Admin:</span> admin@tigre.com / senha123
               </div>
             </div>
           </div>

@@ -119,7 +119,7 @@ export default function HistoryTable() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900 font-mono">
-                      {prediction.id_previsao.substring(0, 8)}...
+                      {prediction.id_previsao}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -134,7 +134,7 @@ export default function HistoryTable() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-sm text-gray-600">
-                      {prediction['SKU/Tipo']}
+                      {prediction['SKU/Tipo'] === "aggregated" ? "Agregado" : prediction['SKU/Tipo']}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

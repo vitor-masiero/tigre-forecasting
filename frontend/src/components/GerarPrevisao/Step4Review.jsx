@@ -188,6 +188,39 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
     return GRANULARITY_LEVELS[formData.granularityLevel.toUpperCase()]?.label || 'Não especificado';
   };
 
+  // Ordenar linhas selecionadas por label
+  const getLinhasOrdenadas = () => {
+    if (!formData.combinacoes?.linha) return [];
+    return formData.combinacoes.linha
+      .map(id => ({ id, label: LINHAS[id]?.label || id }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  };
+
+  // Ordenar processos selecionados por label
+  const getProcessosOrdenados = () => {
+    if (!formData.combinacoes?.processos) return [];
+    return formData.combinacoes.processos
+      .map(id => ({ id, label: PROCESSOS_MAPPING[id]?.label || `Processo ${id}` }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  };
+
+  // Ordenar classificações selecionadas (A, B, C)
+  const getClassificacoesOrdenadas = () => {
+    if (!formData.combinacoes?.classificacoes) return [];
+    return [...formData.combinacoes.classificacoes].sort();
+  };
+
+  // Ordenar SKUs selecionados
+  const getSkusOrdenados = () => {
+    if (!formData.skusSelecionados) return [];
+    return [...formData.skusSelecionados].sort();
+  };
+
+  const linhasOrdenadas = getLinhasOrdenadas();
+  const processosOrdenados = getProcessosOrdenados();
+  const classificacoesOrdenadas = getClassificacoesOrdenadas();
+  const skusOrdenados = getSkusOrdenados();
+
   return (
     <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100 max-w-4xl mx-auto">
       <div className="mb-8">
@@ -235,7 +268,7 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
               <p className="text-sm text-gray-600 mb-3">Detalhes da Seleção:</p>
               <div className="space-y-3">
                 {/* Linhas */}
-                {formData.combinacoes.linha && formData.combinacoes.linha.length > 0 && (
+                {linhasOrdenadas.length > 0 && (
                   <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border-l-4 border-blue-500 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shadow-md">
@@ -246,9 +279,9 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
                       <p className="text-base font-bold text-blue-900">Linhas Selecionadas</p>
                     </div>
                     <div className="flex flex-wrap gap-2 ml-13">
-                      {formData.combinacoes.linha.map(linhaId => (
-                        <span key={linhaId} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold shadow-md hover:bg-blue-700 transition">
-                          {LINHAS[linhaId]?.label || linhaId}
+                      {linhasOrdenadas.map(linha => (
+                        <span key={linha.id} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold shadow-md hover:bg-blue-700 transition">
+                          {linha.label}
                         </span>
                       ))}
                     </div>
@@ -256,7 +289,7 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
                 )}
 
                 {/* Processos */}
-                {formData.combinacoes.processos && formData.combinacoes.processos.length > 0 && (
+                {processosOrdenados.length > 0 && (
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 border-l-4 border-purple-500 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center shadow-md">
@@ -267,9 +300,9 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
                       <p className="text-base font-bold text-purple-900">Processos Selecionados</p>
                     </div>
                     <div className="flex flex-wrap gap-2 ml-13">
-                      {formData.combinacoes.processos.map(procId => (
-                        <span key={procId} className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold shadow-md hover:bg-purple-700 transition">
-                          {PROCESSOS_MAPPING[procId]?.label || `Processo ${procId}`}
+                      {processosOrdenados.map(processo => (
+                        <span key={processo.id} className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-semibold shadow-md hover:bg-purple-700 transition">
+                          {processo.label}
                         </span>
                       ))}
                     </div>
@@ -277,7 +310,7 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
                 )}
 
                 {/* Classificações */}
-                {formData.combinacoes.classificacoes && formData.combinacoes.classificacoes.length > 0 && (
+                {classificacoesOrdenadas.length > 0 && (
                   <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 border-l-4 border-amber-500 shadow-sm">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center shadow-md">
@@ -288,7 +321,7 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
                       <p className="text-base font-bold text-amber-900">Classificações ABC</p>
                     </div>
                     <div className="flex gap-2 ml-13">
-                      {formData.combinacoes.classificacoes.map(cls => {
+                      {classificacoesOrdenadas.map(cls => {
                         const colors = {
                           A: 'bg-emerald-600 hover:bg-emerald-700',
                           B: 'bg-yellow-500 hover:bg-yellow-600',
@@ -311,18 +344,18 @@ export default function Step4Review({ formData, setJsonPredict, nextStep, prevSt
           )}
 
           {/* Detalhamento por SKU */}
-          {formData.granularityLevel === 'por_sku' && formData.skusSelecionados.length > 0 && (
+          {formData.granularityLevel === 'por_sku' && skusOrdenados.length > 0 && (
             <div className="mt-4 pt-4 border-t border-gray-200">
               <p className="text-sm text-gray-600 mb-3">SKUs Selecionados:</p>
               <div className="flex flex-wrap gap-2">
-                {formData.skusSelecionados.slice(0, 10).map(sku => (
+                {skusOrdenados.slice(0, 10).map(sku => (
                   <span key={sku} className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                     {sku}
                   </span>
                 ))}
-                {formData.skusSelecionados.length > 10 && (
+                {skusOrdenados.length > 10 && (
                   <span className="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-medium">
-                    +{formData.skusSelecionados.length - 10} mais
+                    +{skusOrdenados.length - 10} mais
                   </span>
                 )}
               </div>

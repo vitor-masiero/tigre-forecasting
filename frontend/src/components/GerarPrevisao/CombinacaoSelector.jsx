@@ -1,5 +1,5 @@
 // ============================================
-// ARQUIVO: src/components/GerarPrevisao/CombinacaoSelector.jsx (NOVO)
+// ARQUIVO: src/components/GerarPrevisao/CombinacaoSelector.jsx (ATUALIZADO)
 // ============================================
 
 import React from 'react';
@@ -30,6 +30,16 @@ export default function CombinacaoSelector({ combinacoes, updateFormData }) {
   };
 
   const processosParaLinhas = getProcessosParaLinhas();
+
+  // Ordenar linhas por label em ordem alfabética
+  const linhasOrdenadas = Object.values(LINHAS).sort((a, b) =>
+    a.label.localeCompare(b.label)
+  );
+
+  // Ordenar processos por label em ordem alfabética
+  const processosOrdenados = Object.values(PROCESSOS_MAPPING).sort((a, b) =>
+    a.label.localeCompare(b.label)
+  );
 
   // Determina quais linhas estão habilitadas
   const getLinhasHabilitadas = () => {
@@ -119,11 +129,29 @@ export default function CombinacaoSelector({ combinacoes, updateFormData }) {
       ? classificacoesSelecionadas.filter(c => c !== classificacao)
       : [...classificacoesSelecionadas, classificacao];
 
+    // Ordenar classificações em ordem alfabética (A, B, C)
+    const classificacoesOrdenadas = novasClassificacoes.sort();
+
     updateFormData('combinacoes', {
       ...combinacoes,
-      classificacoes: novasClassificacoes
+      classificacoes: classificacoesOrdenadas
     });
   };
+
+  // Ordenar linhas selecionadas por label
+  const linhasSelecionadasOrdenadas = linhasSelecionadas
+    .map(id => ({ id, label: LINHAS[id]?.label || id }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+    .map(item => item.id);
+
+  // Ordenar processos selecionados por label
+  const processosSelecionadosOrdenados = processosSelecionados
+    .map(id => ({ id, label: PROCESSOS_MAPPING[id]?.label || `Processo ${id}` }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+    .map(item => item.id);
+
+  // Ordenar classificações selecionadas (já estão em ordem A, B, C)
+  const classificacoesSelecionadasOrdenadas = [...classificacoesSelecionadas].sort();
 
   return (
     <div className="space-y-6">
@@ -134,7 +162,7 @@ export default function CombinacaoSelector({ combinacoes, updateFormData }) {
           <p className="text-sm text-blue-700">Selecione uma ou mais linhas</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {Object.values(LINHAS).map((linha) => {
+          {linhasOrdenadas.map((linha) => {
             const isSelected = linhasSelecionadas.includes(linha.id);
             const isDisabled = !linhasHabilitadas.includes(linha.id);
 
@@ -180,7 +208,7 @@ export default function CombinacaoSelector({ combinacoes, updateFormData }) {
           <p className="text-sm text-purple-700">Selecione um ou mais processos</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          {Object.values(PROCESSOS_MAPPING).map((processo) => {
+          {processosOrdenados.map((processo) => {
             const isSelected = processosSelecionados.includes(processo.id);
             const isDisabled = !processosHabilitados.includes(processo.id);
             const linhasCompativeis = processosParaLinhas[processo.id] || [];
@@ -257,19 +285,19 @@ export default function CombinacaoSelector({ combinacoes, updateFormData }) {
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-green-900 mb-3">Resumo da Seleção</h3>
           <div className="space-y-2 text-sm">
-            {linhasSelecionadas.length > 0 && (
+            {linhasSelecionadasOrdenadas.length > 0 && (
               <p className="text-green-800">
-                <span className="font-semibold">Linhas:</span> {linhasSelecionadas.map(id => LINHAS[id]?.label || id).join(', ')}
+                <span className="font-semibold">Linhas:</span> {linhasSelecionadasOrdenadas.map(id => LINHAS[id]?.label || id).join(', ')}
               </p>
             )}
-            {processosSelecionados.length > 0 && (
+            {processosSelecionadosOrdenados.length > 0 && (
               <p className="text-green-800">
-                <span className="font-semibold">Processos:</span> {processosSelecionados.map(p => PROCESSOS_MAPPING[p]?.label || p).join(', ')}
+                <span className="font-semibold">Processos:</span> {processosSelecionadosOrdenados.map(p => PROCESSOS_MAPPING[p]?.label || p).join(', ')}
               </p>
             )}
-            {classificacoesSelecionadas.length > 0 && (
+            {classificacoesSelecionadasOrdenadas.length > 0 && (
               <p className="text-green-800">
-                <span className="font-semibold">Classificações:</span> {classificacoesSelecionadas.join(', ')}
+                <span className="font-semibold">Classificações:</span> {classificacoesSelecionadasOrdenadas.join(', ')}
               </p>
             )}
           </div>

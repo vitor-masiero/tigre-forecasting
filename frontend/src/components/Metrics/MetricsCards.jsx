@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import MetricCard from "./MetricCard";
 import { TrendingUp, BarChart3, Zap } from "lucide-react";
-import api from "../../utils/Api";
 
 function MetricSkeleton() {
   return (
@@ -18,53 +17,40 @@ function MetricSkeleton() {
   );
 }
 
-export default function MetricsCards() {
+export default function MetricsCards({ data, loading }) {
   const [metrics, setMetrics] = useState(null);
-  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const response = await api.get('/xgboost/metrics/general');
-        const data = response.data;
+    if (data && data.preview && data.metrics) {
+      let valorTotal = 0;
+      data.preview.forEach((e) => {
+        valorTotal += e.yhat;
+      });
 
-        setMetrics([
-          {
-            title: "Previsão 30 Dias",
-            value: "R$ 2,4M",
-            trend: "+12,5%",
-            trendPositive: true,
-            icon: TrendingUp,
-            iconBg: "bg-emerald-500",
-          },
-          {
-            title: "WMAPE Geral",
-            value: `${data.wmape.average.toFixed(1)}%`,
-            trend: "Excelente",
-            trendPositive: true,
-            icon: BarChart3,
-            iconBg: "bg-blue-500",
-          },
-          {
-            title: "Bias Geral",
-            value: `${data.bias_percentage.average.toFixed(1)}%`,
-            trend: "Monitorando",
-            trendPositive: null,
-            icon: Zap,
-            iconBg: "bg-teal-500",
-            trendIcon: "play",
-          },
-        ]);
-        setLoading(false);
-      } catch (error) {
-        console.error('Erro ao carregar métricas:', error);
-        setLoading(false);
-      }
-    };
+      setMetrics([
+        {
+          title: "VALOR TOTAL",
+          value: String(valorTotal.toFixed(2)).replaceAll(".", ","),
+          icon: TrendingUp,
+          iconBg: "bg-emerald-500",
+        },
+        {
+          title: "WMAPE Geral",
+          value: `${String(data.metrics.global.metrics_global['WMAPE (%)'].toFixed(1)).replaceAll(".", ",")}%`,
+          icon: BarChart3,
+          iconBg: "bg-blue-500",
+        },
+        {
+          title: "Bias Geral",
+          value: `${String(data.metrics.global.metrics_global['Bias (%)'].toFixed(1)).replaceAll(".", ",")}%`,
+          icon: Zap,
+          iconBg: "bg-teal-500",
+        },
+      ]);
+    }
+  }, [data]);
 
-    fetchMetrics();
-  }, []);
-
-  if (loading) {
+  if (loading || !metrics) {
     return (
       <div className="grid grid-cols-3 gap-6 mb-6">
         <MetricSkeleton />

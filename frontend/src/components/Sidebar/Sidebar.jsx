@@ -20,13 +20,11 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
   ];
 
   const dataMenuItems = [
-    { icon: Database, label: "Fontes de Dados", page: "fontes-dados" },
     { icon: Upload, label: "Importar", page: "importar-dados" },
   ];
 
   const configMenuItems = [
     { icon: Settings, label: "Configurações", page: "configuracoes" },
-    { icon: Users, label: "Equipe", page: "equipe" },
   ];
 
   return (

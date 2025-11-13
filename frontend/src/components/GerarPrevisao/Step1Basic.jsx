@@ -58,10 +58,7 @@ export default function Step1Basic({ formData, updateFormData, nextStep }) {
           </label>
           <div className="grid grid-cols-4 gap-3">
             {[
-              // { value: 'automatico', label: 'Automático', desc: 'Melhor Fit' },
-              // { value: 'arima', label: 'ARIMA', desc: 'Estatístico' },
-              { value: 'XGBoost', label: 'XGBoost', desc: '' },
-              // { value: 'ensemble', label: 'Ensemble', desc: 'Combinado' }
+              { value: 'XGBoost', label: 'XGBoost' },
             ].map(model => (
               <button
                 key={model.value}
@@ -73,11 +70,6 @@ export default function Step1Basic({ formData, updateFormData, nextStep }) {
                 }`}
               >
                 <div>{model.label}</div>
-                <div className={`text-xs mt-1 ${
-                  formData.modeloPrevisao === model.value ? 'text-blue-100' : 'text-gray-500'
-                }`}>
-                  {model.desc}
-                </div>
               </button>
             ))}
           </div>
