@@ -98,7 +98,7 @@ function AppContent({ currentPage, setCurrentPage, renderPage }) {
     <div className="flex h-screen bg-gray-50">
       {isAuthenticated && <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {isAuthenticated && <TopBar />}
+        {isAuthenticated && <TopBar setCurrentPage={setCurrentPage}/>}
         <div className="flex-1 overflow-y-auto">
           {renderPage()}
         </div>

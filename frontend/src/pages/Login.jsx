@@ -51,7 +51,7 @@ export default function Login() {
               <BarChart3 className="w-12 h-12 text-blue-600" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Tigre Forecast</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Tigre Vision Pro</h1>
           <p className="text-blue-100">Sistema de Previsão de Vendas</p>
         </div>
 
@@ -107,19 +107,7 @@ export default function Login() {
               />
             </div>
 
-            {/* Lembrar-me */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="ml-2 text-sm text-gray-600">Lembrar-me</span>
-              </label>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                Esqueceu a senha?
-              </a>
-            </div>
+            
 
             {/* Botão Submit */}
             <button
