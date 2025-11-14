@@ -1,4 +1,4 @@
-from app.services.prophet_service import ProphetService
+
 from app.services.aggregation_service import AggregationService
 from app.services.xgboost_service import XGBoostService
 
@@ -108,8 +108,7 @@ class RedirectService:
         model_name, db, df, sku, periods
     ):
         if model_name == "Prophet":
-            prophet_service = ProphetService(db)
-            return prophet_service.make_prediction(df, periods=periods, sku=sku)
+            return "TSB", None, 0, None
         elif model_name == "TSB":
             return "TSB", None, 0, None
         elif model_name == "XGBoost":

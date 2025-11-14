@@ -1,13 +1,14 @@
-from app.config.db_config import DatabaseConfig
-from app.controllers import (
-    prophet_controller,
-    validation_controller,
-    xgboost_controller,
-    import_controller,
-)
-from app.controllers.auth_controller import router as auth_router, users_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from app.config.db_config import DatabaseConfig
+from app.controllers import (
+    import_controller,
+    prophet_controller,
+    xgboost_controller,
+)
+from app.controllers.auth_controller import router as auth_router
+from app.controllers.auth_controller import users_router
 
 app = FastAPI(
     title="Tigre Forecast API",
@@ -30,7 +31,6 @@ app.add_middleware(
 )
 
 app.include_router(prophet_controller.router)
-app.include_router(validation_controller.router)
 app.include_router(xgboost_controller.router)
 app.include_router(auth_router)
 app.include_router(users_router)
@@ -57,7 +57,7 @@ async def root():
         "auth": {
             "login": "/auth/login",
             "me": "/auth/me",
-            "change_password": "/auth/change-password"
+            "change_password": "/auth/change-password",
         },
         "users": {
             "create": "/users/ (POST) - Apenas Gestão",
@@ -65,12 +65,12 @@ async def root():
             "get": "/users/{user_id} - Apenas Gestão",
             "update": "/users/{user_id} (PUT) - Apenas Gestão",
             "delete": "/users/{user_id} (DELETE) - Apenas Gestão",
-            "stats": "/users/statistics/overview - Apenas Gestão"
+            "stats": "/users/statistics/overview - Apenas Gestão",
         },
         "xgboost": {
             "general_metrics": "/xgboost/metrics/general",
             "metrics_by_sku": "/xgboost/metrics/by-sku?sku=SKU123",
-            "top_worst": "/xgboost/metrics/top-worst?limit=10"
+            "top_worst": "/xgboost/metrics/top-worst?limit=10",
         },
-        "docs": "/docs"
+        "docs": "/docs",
     }

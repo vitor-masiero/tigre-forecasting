@@ -361,8 +361,11 @@ class XGBoostService:
         y_test = test['Quantidade']
 
         model = XGBRegressor(
-            n_estimators=300,
-            learning_rate=0.04,
+            n_estimators=1500,
+            learning_rate=0.03,
+            max_depth=5,
+            early_stopping_rounds=50,
+            random_state=42,
         )
 
         model.fit(X_train, y_train, eval_set=[(X_train, y_train), (X_test, y_test)], verbose=False)
