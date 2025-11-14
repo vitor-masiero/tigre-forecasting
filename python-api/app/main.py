@@ -41,6 +41,7 @@ app.include_router(import_controller.router)
 def on_startup():
     print("🚀 Iniciando aplicação...")
 
+    # Cria todas as tabelas (incluindo tbusuarios)
     DatabaseConfig.Base.metadata.create_all(bind=DatabaseConfig.get_engine())
     print("✅ Tabelas do banco de dados verificadas/criadas.")
     print("   - tbprevisao")

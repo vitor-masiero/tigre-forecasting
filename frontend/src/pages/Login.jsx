@@ -32,12 +32,10 @@ export default function Login() {
     }
 
     const result = await login(formData.email, formData.senha);
-
     if (!result.success) {
       setError(result.message);
     }
     // Se success === true, o AuthContext já redireciona automaticamente
-
     setLoading(false);
   };
 
