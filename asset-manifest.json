@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/static/css/main.2fc01fb6.css",
-    "main.js": "/static/js/main.c89a7d90.js",
-    "index.html": "/index.html",
-    "main.2fc01fb6.css.map": "/static/css/main.2fc01fb6.css.map",
-    "main.c89a7d90.js.map": "/static/js/main.c89a7d90.js.map"
+    "main.css": "/tigre-forecasting/static/css/main.4b2eca04.css",
+    "main.js": "/tigre-forecasting/static/js/main.e36711b6.js",
+    "index.html": "/tigre-forecasting/index.html",
+    "main.4b2eca04.css.map": "/tigre-forecasting/static/css/main.4b2eca04.css.map",
+    "main.e36711b6.js.map": "/tigre-forecasting/static/js/main.e36711b6.js.map"
   },
   "entrypoints": [
-    "static/css/main.2fc01fb6.css",
-    "static/js/main.c89a7d90.js"
+    "static/css/main.4b2eca04.css",
+    "static/js/main.e36711b6.js"
   ]
 }
