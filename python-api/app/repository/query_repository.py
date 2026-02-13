@@ -26,3 +26,8 @@ class QueryRepository:
         )
 
         return df_for_validation
+    
+    def get_previsoes_data():
+        query = "SELECT * FROM tbprevisao ORDER BY dt_processamento DESC;"
+        df = DatabaseConfig.load_data_from_db(query)
+        return df

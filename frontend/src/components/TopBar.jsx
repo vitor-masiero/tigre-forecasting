@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import "bootstrap/dist/css/bootstrap.min.css";
+import { Modal, Button } from "react-bootstrap";
 
-export default function TopBar() {
+export default function TopBar({ setCurrentPage }) {
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [showModal, setShowModal] = useState(false);
 
   // Fecha dropdown ao clicar fora
   useEffect(() => {
@@ -19,9 +22,14 @@ export default function TopBar() {
   }, []);
 
   const handleLogout = () => {
-    if (window.confirm('Tem certeza que deseja sair?')) {
-      logout();
-    }
+    logout();
+    setShowModal(false);
+  };
+
+  const handleOpenLogoutModal = (e) => {
+    e.stopPropagation(); // Previne propagação do evento
+    setShowModal(true);
+    setDropdownOpen(false); // Fecha o dropdown antes de abrir o modal
   };
 
   const getRoleBadgeColor = (role) => {
@@ -58,7 +66,7 @@ export default function TopBar() {
         {/* Lado Esquerdo - Pode adicionar breadcrumbs ou título aqui */}
         <div className="flex items-center gap-4">
           <div className="text-sm text-gray-500">
-            Bem-vindo de volta! 👋
+            Bem-vindo de volta {user.nome}!
           </div>
         </div>
 
@@ -116,18 +124,7 @@ export default function TopBar() {
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
-                      // Navegar para perfil (implementar depois)
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    <User className="w-4 h-4 text-gray-400" />
-                    Meu Perfil
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      // Navegar para configurações (implementar depois)
+                      setCurrentPage("configuracoes");
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
                   >
@@ -139,7 +136,7 @@ export default function TopBar() {
                 {/* Logout */}
                 <div className="border-t border-gray-100 pt-1">
                   <button
-                    onClick={handleLogout}
+                    onClick={handleOpenLogoutModal}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition"
                   >
                     <LogOut className="w-4 h-4" />
@@ -151,6 +148,22 @@ export default function TopBar() {
           </div>
         </div>
       </div>
+
+      {/* Modal de confirmação - Movido para fora do dropdown */}
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmar Logout</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Tem certeza que deseja sair da conta?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            Cancelar
+          </Button>
+          <Button className='bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition' onClick={handleLogout}>
+            Sair
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

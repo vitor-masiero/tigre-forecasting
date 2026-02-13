@@ -1,3 +1,7 @@
+// ============================================
+// ARQUIVO: src/components/GerarPrevisao/Step2DataSelection.jsx (ATUALIZADO)
+// ============================================
+
 import React from 'react';
 import { GRANULARITY_LEVELS } from '../../utils/dataStructure';
 import GranularitySelector from './GranularitySelector';
@@ -8,7 +12,7 @@ export default function Step2DataSelection({ formData, updateFormData, nextStep,
   const handleGranularityChange = (level) => {
     updateFormData('granularityLevel', level);
     updateFormData('combinacoes', {});
-    updateFormData('skusSelecionados', '');
+    updateFormData('skusSelecionados', []);
   };
 
   const handleSKUChange = (skuString) => {
@@ -17,33 +21,18 @@ export default function Step2DataSelection({ formData, updateFormData, nextStep,
 
   const isValid = () => {
     if (formData.granularityLevel === 'todas') return true;
+
     if (formData.granularityLevel === 'combinacao') {
-      return Object.keys(formData.combinacoes).length > 0;
+      const { linha, processos, classificacoes } = formData.combinacoes;
+      // Pelo menos uma das três deve estar selecionada
+      return linha || (processos && processos.length > 0) || (classificacoes && classificacoes.length > 0);
     }
+
     if (formData.granularityLevel === 'por_sku') {
-      return !!(formData.skusSelecionados && formData.skusSelecionados.toString().trim());
+      return !!(formData.skusSelecionados && formData.skusSelecionados.length > 0);
     }
+
     return false;
-  };
-
-  const getSelectionSummary = () => {
-    if (formData.granularityLevel === 'todas') {
-      return 'Todas as linhas, processos e classificações';
-    }
-
-    if (formData.granularityLevel === 'combinacao') {
-      const totalLinhas = Object.keys(formData.combinacoes).length;
-      const totalProcessos = Object.values(formData.combinacoes).reduce(
-        (sum, processos) => sum + Object.keys(processos).length, 0
-      );
-      return `${totalLinhas} linha(s) • ${totalProcessos} processo(s)`;
-    }
-
-    if (formData.granularityLevel === 'por_sku') {
-      return formData.skusSelecionados ? `SKU: ${formData.skusSelecionados}` : '';
-    }
-
-    return '';
   };
 
   return (
@@ -80,8 +69,6 @@ export default function Step2DataSelection({ formData, updateFormData, nextStep,
             onSKUChange={handleSKUChange}
           />
         )}
-
-        {/* Resumo da Seleção removido conforme solicitado */}
       </div>
 
       <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">

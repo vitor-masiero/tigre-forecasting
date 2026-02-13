@@ -8,7 +8,6 @@ export default function Historico() {
     <div className="flex-1 overflow-y-auto">
       <PageHeader />
       <div className="px-8 -mt-6 pb-8">
-        <FiltersCard />
         <HistoryTable />
       </div>
     </div>

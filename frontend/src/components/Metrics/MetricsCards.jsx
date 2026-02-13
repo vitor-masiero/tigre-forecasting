@@ -1,35 +1,64 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import MetricCard from "./MetricCard";
 import { TrendingUp, BarChart3, Zap } from "lucide-react";
 
-export default function MetricsCards() {
-  const metrics = [
-    {
-      title: "Previsão 30 Dias",
-      value: "R$ 2,4M",
-      trend: "+12,5%",
-      trendPositive: true,
-      icon: TrendingUp,
-      iconBg: "bg-emerald-500",
-    },
-    {
-      title: "Precisão Modelo",
-      value: "94,2%",
-      trend: "Excelente",
-      trendPositive: true,
-      icon: BarChart3,
-      iconBg: "bg-blue-500",
-    },
-    {
-      title: "Automações Ativas",
-      value: "8",
-      trend: "Funcionando",
-      trendPositive: null,
-      icon: Zap,
-      iconBg: "bg-teal-500",
-      trendIcon: "play",
-    },
-  ];
+function MetricSkeleton() {
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 animate-pulse">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="h-4 bg-gray-200 rounded w-24 mb-3"></div>
+          <div className="h-8 bg-gray-200 rounded w-32 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-20"></div>
+        </div>
+        <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+      </div>
+    </div>
+  );
+}
+
+export default function MetricsCards({ data, loading }) {
+  const [metrics, setMetrics] = useState(null);
+
+  useEffect(() => {
+    if (data && data.preview && data.metrics) {
+      let valorTotal = 0;
+      data.preview.forEach((e) => {
+        valorTotal += e.yhat;
+      });
+
+      setMetrics([
+        {
+          title: "VALOR TOTAL",
+          value: String(valorTotal.toFixed(2)).replaceAll(".", ","),
+          icon: TrendingUp,
+          iconBg: "bg-emerald-500",
+        },
+        {
+          title: "WMAPE Geral",
+          value: `${String(data.metrics.global.metrics_global['WMAPE (%)'].toFixed(1)).replaceAll(".", ",")}%`,
+          icon: BarChart3,
+          iconBg: "bg-blue-500",
+        },
+        {
+          title: "Bias Geral",
+          value: `${String(data.metrics.global.metrics_global['Bias (%)'].toFixed(1)).replaceAll(".", ",")}%`,
+          icon: Zap,
+          iconBg: "bg-teal-500",
+        },
+      ]);
+    }
+  }, [data]);
+
+  if (loading || !metrics) {
+    return (
+      <div className="grid grid-cols-3 gap-6 mb-6">
+        <MetricSkeleton />
+        <MetricSkeleton />
+        <MetricSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-3 gap-6 mb-6">

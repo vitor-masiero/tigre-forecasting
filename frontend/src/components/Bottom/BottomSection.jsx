@@ -1,14 +1,10 @@
 import React from "react";
-import ModelPrecision from "./ModelPrecision";
-import InfluenceFactors from "./InfluenceFactors";
 import RecentForecasts from "./RecentForecasts";
 
-export default function BottomSection() {
+export default function BottomSection({ data, loading }) {
   return (
-    <div className="grid grid-cols-3 gap-6">
-      <ModelPrecision />
-      <InfluenceFactors />
-      <RecentForecasts />
+    <div className="grid grid-cols-1 gap-6">
+      <RecentForecasts data={data} loading={loading} />
     </div>
   );
 }

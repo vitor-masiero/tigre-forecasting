@@ -25,12 +25,12 @@ const USER_TYPES = {
 export default function UserForm({ user, onClose, onSuccess }) {
   const { addUser, updateUser } = useUsers();
   
-  const [formData, setFormData] = useState(user || {
-    nome: '',
-    email: '',
-    tipo: 'comercial',
+  const [formData, setFormData] = useState({
+    nome: user?.nome || '',
+    email: user?.email || '',
+    tipo: user?.tipo || user?.role || 'comercial', // Trata tanto 'tipo' quanto 'role'
     senha: '',
-    ativo: true
+    ativo: user?.ativo !== undefined ? user.ativo : true
   });
   
   const [errors, setErrors] = useState({});

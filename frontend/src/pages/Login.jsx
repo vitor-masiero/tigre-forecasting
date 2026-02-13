@@ -32,12 +32,10 @@ export default function Login() {
     }
 
     const result = await login(formData.email, formData.senha);
-    
     if (!result.success) {
       setError(result.message);
     }
     // Se success === true, o AuthContext já redireciona automaticamente
-    
     setLoading(false);
   };
 
@@ -51,7 +49,7 @@ export default function Login() {
               <BarChart3 className="w-12 h-12 text-blue-600" />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">Tigre Forecast</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">Tigre Vision Pro</h1>
           <p className="text-blue-100">Sistema de Previsão de Vendas</p>
         </div>
 
@@ -107,19 +105,7 @@ export default function Login() {
               />
             </div>
 
-            {/* Lembrar-me */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="ml-2 text-sm text-gray-600">Lembrar-me</span>
-              </label>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                Esqueceu a senha?
-              </a>
-            </div>
+            
 
             {/* Botão Submit */}
             <button
@@ -143,16 +129,10 @@ export default function Login() {
 
           {/* Informações de Teste */}
           <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-xs text-gray-500 text-center mb-3">Contas de teste disponíveis:</p>
+            <p className="text-xs text-gray-500 text-center mb-2">Contas de teste disponíveis:</p>
             <div className="space-y-2 text-xs">
-              <div className="bg-gray-50 p-2 rounded">
-                <span className="font-semibold text-gray-700">Gestão:</span> gestao@tigre.com / senha123
-              </div>
-              <div className="bg-gray-50 p-2 rounded">
-                <span className="font-semibold text-gray-700">Analista:</span> analista@tigre.com / senha123
-              </div>
-              <div className="bg-gray-50 p-2 rounded">
-                <span className="font-semibold text-gray-700">Comercial:</span> comercial@tigre.com / senha123
+              <div className="bg-gray-50 rounded text-center">
+                <span className="font-semibold text-gray-700">Admin:</span> admin@tigre.com / senha123
               </div>
             </div>
           </div>

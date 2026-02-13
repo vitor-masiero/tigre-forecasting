@@ -11,7 +11,6 @@ export default function Header() {
             Análise e previsões de vendas inteligentes
           </p>
         </div>
-        <HeaderButtons />
       </div>
     </div>
   );

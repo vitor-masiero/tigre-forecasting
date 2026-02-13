@@ -16,19 +16,15 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
   const mainMenuItems = [
     { icon: BarChart3, label: "Dashboard Principal", page: "dashboard" },
     { icon: "edit", label: "Gerar Previsão", page: "gerar-previsao" },
-    { icon: "refresh", label: "Automações", page: "automacoes" },
     { icon: Clock, label: "Histórico", page: "historico" },
   ];
 
   const dataMenuItems = [
-    { icon: Database, label: "Fontes de Dados", page: "fontes-dados" },
     { icon: Upload, label: "Importar", page: "importar-dados" },
-    { icon: FileText, label: "Relatórios", page: "relatorios" },
   ];
 
   const configMenuItems = [
     { icon: Settings, label: "Configurações", page: "configuracoes" },
-    { icon: Users, label: "Equipe", page: "equipe" },
   ];
 
   return (
