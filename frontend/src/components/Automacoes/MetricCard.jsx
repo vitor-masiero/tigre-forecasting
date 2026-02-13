@@ -1,4 +1,5 @@
 import React from "react";
+import { Zap, Calendar, CheckCircle2, Clock } from 'lucide-react';
 
 export default function MetricCard({
   title,
@@ -6,85 +7,55 @@ export default function MetricCard({
   trend,
   trendPositive,
   icon,
-  iconBg,
 }) {
-  const renderIcon = () => {
+  const getIcon = () => {
     switch (icon) {
-      case "automation":
-        return (
-          <svg
-            className="w-5 h-5 text-white"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        );
-      case "calendar":
-        return (
-          <svg
-            className="w-5 h-5 text-white"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" />
-          </svg>
-        );
-      case "check":
-        return (
-          <svg
-            className="w-5 h-5 text-white"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-          </svg>
-        );
-      default:
-        return null;
+      case "automation": return <Zap className="w-6 h-6 text-brand-600" />;
+      case "calendar": return <Calendar className="w-6 h-6 text-emerald-600" />;
+      case "check": return <CheckCircle2 className="w-6 h-6 text-blue-600" />;
+      default: return <Clock className="w-6 h-6 text-slate-400" />;
+    }
+  };
+
+  const getBg = () => {
+    switch (icon) {
+      case "automation": return "bg-brand-50";
+      case "calendar": return "bg-emerald-50";
+      case "check": return "bg-blue-50";
+      default: return "bg-slate-50";
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-      <div className="flex justify-between items-start mb-4">
-        <div className="text-sm font-medium text-gray-500 uppercase">
-          {title}
+    <div className="group bg-white rounded-3xl p-7 border border-slate-200/60 shadow-soft hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+      <div className="relative z-10">
+        <div className="flex justify-between items-start mb-6">
+          <div className={`p-3 rounded-2xl ${getBg()} group-hover:scale-110 transition-transform duration-300`}>
+            {getIcon()}
+          </div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+            {title}
+          </div>
         </div>
-        <div className={`${iconBg} p-2 rounded-lg`}>{renderIcon()}</div>
+        
+        <div className="flex flex-col">
+          <div className="text-3xl font-black text-slate-900 tracking-tight group-hover:text-brand-700 transition-colors">
+            {value}
+          </div>
+          
+          <div className="flex items-center gap-2 mt-2">
+            <div className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tighter ${
+              trendPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+            }`}>
+              {trend}
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter italic">vs mês anterior</span>
+          </div>
+        </div>
       </div>
-      <div className="text-4xl font-bold text-gray-900 mb-2">{value}</div>
-      <div
-        className={`flex items-center gap-1 ${
-          trendPositive === null ? "text-gray-600" : "text-emerald-600"
-        }`}
-      >
-        {trendPositive && (
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 10l7-7m0 0l7 7m-7-7v18"
-            />
-          </svg>
-        )}
-        {trendPositive === null && (
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-              clipRule="evenodd"
-            />
-          </svg>
-        )}
-        <span className="text-sm font-medium">{trend}</span>
-      </div>
+      
+      {/* Subtle Background Element */}
+      <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full opacity-[0.03] group-hover:opacity-[0.08] transition-opacity ${getBg().replace('50', '500')}`} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import ForecastItem from "./ForecastItem";
 import api from "../../utils/Api";
+import { MOCK_DASHBOARD_DATA } from "../../utils/mockData";
 
 export default function RecentForecasts({ data, loading }) {
   const [forecasts, setForecasts] = useState([]);
@@ -36,7 +37,17 @@ export default function RecentForecasts({ data, loading }) {
         setForecasts(recent);
         setLoadingHistory(false);
       } catch (error) {
-        console.error('Erro ao carregar histórico:', error);
+        console.error('Erro ao carregar histórico, usando mocks:', error);
+        
+        // Fallback para dados mockados formatados
+        const mockRecent = MOCK_DASHBOARD_DATA.previsoes_recentes.map(m => ({
+          title: m.id,
+          details: m.produto,
+          time: m.data,
+          status: m.status === 'Concluído' ? 'success' : 'pending'
+        }));
+        
+        setForecasts(mockRecent);
         setLoadingHistory(false);
       }
     };

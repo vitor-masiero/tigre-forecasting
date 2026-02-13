@@ -1,56 +1,34 @@
 import React from "react";
 
-export default function MenuItem({ icon: Icon, label, active, onClick }) {
+export default function MenuItem({ icon: Icon, label, active, onClick, theme = "light" }) {
+  const isDark = theme === "dark";
+  
   const baseClasses =
-    "flex items-center gap-3 px-3 py-2 rounded-lg transition cursor-pointer";
-  const activeClasses = active
-    ? "text-blue-600 bg-blue-50"
-    : "text-gray-600 hover:bg-gray-50";
+    "flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 cursor-pointer group";
+  
+  const activeClasses = isDark
+    ? active 
+      ? "text-white bg-brand-600 shadow-lg shadow-brand-900/40" 
+      : "text-slate-400 hover:text-white hover:bg-slate-900"
+    : active
+      ? "text-brand-700 bg-brand-50"
+      : "text-gray-600 hover:bg-gray-50";
 
   const renderIcon = () => {
     if (typeof Icon === "string") {
-      if (Icon === "edit") {
-        return (
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-            />
-          </svg>
-        );
-      }
-      if (Icon === "refresh") {
-        return (
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-        );
-      }
+      // Keep legacy support but we should move to Lucide components
+      return null; 
     }
-    return <Icon className="w-5 h-5" />;
+    return <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${active ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'}`} />;
   };
 
   return (
     <div onClick={onClick} className={`${baseClasses} ${activeClasses}`}>
       {renderIcon()}
-      <span className={active ? "font-medium" : ""}>{label}</span>
+      <span className={`text-sm ${active ? "font-semibold" : "font-medium"}`}>{label}</span>
+      {active && isDark && (
+        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+      )}
     </div>
   );
 }

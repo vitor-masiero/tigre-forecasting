@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import MetricCard from "./MetricCard";
 import { TrendingUp, BarChart3, Zap } from "lucide-react";
 
@@ -18,16 +18,19 @@ function MetricSkeleton() {
 }
 
 export default function MetricsCards({ data, loading }) {
-  const [metrics, setMetrics] = useState(null);
+  const metrics = useMemo(() => {
+    if (!data || !data.preview || !data.metrics) return null;
 
-  useEffect(() => {
-    if (data && data.preview && data.metrics) {
+    try {
       let valorTotal = 0;
       data.preview.forEach((e) => {
-        valorTotal += e.yhat;
+        valorTotal += e.yhat || 0;
       });
 
-      setMetrics([
+      const wmape = data.metrics.global?.metrics_global?.['WMAPE (%)'] || 0;
+      const bias = data.metrics.global?.metrics_global?.['Bias (%)'] || 0;
+
+      return [
         {
           title: "VALOR TOTAL",
           value: String(valorTotal.toFixed(2)).replaceAll(".", ","),
@@ -36,17 +39,20 @@ export default function MetricsCards({ data, loading }) {
         },
         {
           title: "WMAPE Geral",
-          value: `${String(data.metrics.global.metrics_global['WMAPE (%)'].toFixed(1)).replaceAll(".", ",")}%`,
+          value: `${String(wmape.toFixed(1)).replaceAll(".", ",")}%`,
           icon: BarChart3,
           iconBg: "bg-blue-500",
         },
         {
           title: "Bias Geral",
-          value: `${String(data.metrics.global.metrics_global['Bias (%)'].toFixed(1)).replaceAll(".", ",")}%`,
+          value: `${String(bias.toFixed(1)).replaceAll(".", ",")}%`,
           icon: Zap,
           iconBg: "bg-teal-500",
         },
-      ]);
+      ];
+    } catch (error) {
+      console.error("Erro ao processar métricas:", error);
+      return null;
     }
   }, [data]);
 
@@ -68,3 +74,4 @@ export default function MetricsCards({ data, loading }) {
     </div>
   );
 }
+

@@ -69,7 +69,7 @@ class XGBoostService:
 
             g['trend_6'] = g[target].shift(1).rolling(window=6, min_periods=3).apply(rolling_trend, raw=False)
 
-            g = g.replace([np.inf, -np.inf], np.nan).fillna(method='bfill').fillna(0)
+            g = g.replace([np.inf, -np.inf], np.nan).fillna(0)
 
             enriched_dfs.append(g)
         
@@ -99,8 +99,8 @@ class XGBoostService:
         df = df.merge(incc_monthly, on='year_month', how='left')
         df = df.merge(selic_monthly, on='year_month', how='left')
         
-        df['incc'] = df['incc'].fillna(method='ffill').fillna(method='bfill')
-        df['selic'] = df['selic'].fillna(method='ffill').fillna(method='bfill')
+        df['incc'] = df['incc'].fillna(method='ffill')
+        df['selic'] = df['selic'].fillna(method='ffill')
         
         df = df.drop('year_month', axis=1)
         
@@ -145,7 +145,7 @@ class XGBoostService:
                     df = df.merge(feature_monthly, on='year_month', how='left')
                     
                     # Preenche valores faltantes
-                    df[f"{feature.feature_name}_{col}"] = df[f"{feature.feature_name}_{col}"].fillna(method='ffill').fillna(method='bfill')
+                    df[f"{feature.feature_name}_{col}"] = df[f"{feature.feature_name}_{col}"].fillna(method='ffill')
                 
                 print(f"✅ Feature '{feature.feature_name}' adicionada com sucesso")
                 

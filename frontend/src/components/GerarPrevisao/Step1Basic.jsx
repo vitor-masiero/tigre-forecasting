@@ -1,138 +1,101 @@
 import React from 'react';
+import { Info, Cpu, Calendar, ChevronRight } from 'lucide-react';
 
 export default function Step1Basic({ formData, updateFormData, nextStep }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Configuração Básica</h2>
-        <p className="text-gray-600">Defina os parâmetros principais da previsão</p>
+    <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className="mb-10">
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-2 flex items-center gap-2">
+          <Calendar className="w-6 h-6 text-brand-600" />
+          Configuração Básica
+        </h2>
+        <p className="text-slate-500 font-medium text-sm">
+          Defina o alcance temporal e o motor de inteligência para esta execução.
+        </p>
       </div>
 
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-6">
-          {/* <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Período Histórico
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {['12', '24', '36', '48'].map(months => (
-                <button
-                  key={months}
-                  onClick={() => updateFormData('periodoHistorico', months)}
-                  className={`px-4 py-3 rounded-lg font-medium transition ${
-                    formData.periodoHistorico === months
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {months} meses
-                </button>
-              ))}
-            </div>
-          </div> */}
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
-              Horizonte de Previsão
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {['12', '18', '24', '36'].map(months => (
-                <button
-                  key={months}
-                  onClick={() => updateFormData('horizontePrevisao', months)}
-                  className={`px-4 py-3 rounded-lg font-medium transition ${
-                    formData.horizontePrevisao === months
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {months} meses
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Modelo de Previsão
+      <div className="space-y-10">
+        {/* Horizonte de Previsão */}
+        <div className="space-y-4">
+          <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest">
+            Horizonte de Previsão
           </label>
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              { value: 'XGBoost', label: 'XGBoost' },
-            ].map(model => (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {['12', '18', '24', '36'].map(months => (
               <button
-                key={model.value}
-                onClick={() => updateFormData('modeloPrevisao', model.value)}
-                className={`px-4 py-3 rounded-lg font-medium transition text-left ${
-                  formData.modeloPrevisao === model.value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                key={months}
+                onClick={() => updateFormData('horizontePrevisao', months)}
+                className={`
+                  group relative px-6 py-4 rounded-2xl font-bold transition-all duration-300 border-2
+                  ${formData.horizontePrevisao === months
+                    ? 'bg-brand-600 border-brand-600 text-white shadow-lg shadow-brand-900/20 scale-[1.02]'
+                    : 'bg-white border-slate-100 text-slate-600 hover:border-brand-200 hover:bg-slate-50'
+                  }
+                `}
               >
-                <div>{model.label}</div>
+                <div className="text-lg">{months}</div>
+                <div className={`text-[10px] uppercase tracking-tighter ${formData.horizontePrevisao === months ? 'text-brand-100' : 'text-slate-400'}`}>meses</div>
               </button>
             ))}
           </div>
         </div>
 
-
-        </div >
-
-        {/* <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Modelo de Previsão
+        {/* Modelo de Previsão */}
+        <div className="space-y-4">
+          <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <Cpu className="w-4 h-4" />
+            Motor de Inteligência
           </label>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              // { value: 'automatico', label: 'Automático', desc: 'Melhor Fit' },
-              // { value: 'arima', label: 'ARIMA', desc: 'Estatístico' },
-              { value: 'prophet', label: 'Prophet', desc: 'Facebook' },
-              // { value: 'ensemble', label: 'Ensemble', desc: 'Combinado' }
+              { value: 'XGBoost', label: 'XGBoost', desc: 'Gradient Boosting' },
+              { value: 'Prophet', label: 'Prophet', desc: 'Séries Temporais' },
+              { value: 'ML', label: 'ML Flow', desc: 'Auto Machine Learning' },
             ].map(model => (
               <button
                 key={model.value}
                 onClick={() => updateFormData('modeloPrevisao', model.value)}
-                className={`px-4 py-3 rounded-lg font-medium transition text-left ${
-                  formData.modeloPrevisao === model.value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                className={`
+                  relative px-6 py-5 rounded-2xl font-bold transition-all duration-300 border-2 text-left
+                  ${formData.modeloPrevisao === model.value
+                    ? 'bg-brand-600 border-brand-600 text-white shadow-lg shadow-brand-900/20'
+                    : 'bg-white border-slate-100 text-slate-600 hover:border-brand-200 hover:bg-slate-50'
+                  }
+                `}
               >
-                <div>{model.label}</div>
-                <div className={`text-xs mt-1 ${
-                  formData.modeloPrevisao === model.value ? 'text-blue-100' : 'text-gray-500'
-                }`}>
+                <div className="text-sm mb-1">{model.label}</div>
+                <div className={`text-[10px] font-medium opacity-70 ${formData.modeloPrevisao === model.value ? 'text-white' : 'text-slate-400'}`}>
                   {model.desc}
                 </div>
+                {formData.modeloPrevisao === model.value && (
+                  <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-white animate-pulse" />
+                )}
               </button>
             ))}
           </div>
-        </div> */}
+        </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-            <div>
-              <p className="text-sm font-medium text-blue-900">Dica</p>
-              <p className="text-sm text-blue-800 mt-1">
-                Recomendamos usar pelo menos 24 meses de histórico para previsões mais precisas.
-              </p>
-            </div>
+        {/* Info Box */}
+        <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex items-start gap-4">
+          <div className="bg-white p-2 rounded-xl shadow-sm">
+            <Info className="w-5 h-5 text-brand-600" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-slate-900 mb-1">Dica de Performance</p>
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
+              Modelos XGBoost tendem a ser mais precisos para dados com alta volatilidade, enquanto o Prophet se destaca em sazonalidades fortes.
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="flex justify-end mt-8 pt-6 border-t border-gray-200">
+      <div className="flex justify-end mt-12 pt-8 border-t border-slate-100">
         <button
           onClick={nextStep}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg flex items-center gap-2 transition font-medium"
+          className="bg-brand-600 hover:bg-brand-700 text-white px-10 py-4 rounded-2xl flex items-center gap-3 transition-all font-bold shadow-lg shadow-brand-900/20 hover:scale-105 active:scale-95"
         >
-          Próximo
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
+          Continuar
+          <ChevronRight className="w-5 h-5" />
         </button>
       </div>
     </div>

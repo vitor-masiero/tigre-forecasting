@@ -3,6 +3,7 @@ import { useUsers } from '../../hooks/useUsers';
 import TableHeader from './TableHeader';
 import TableRow from './TableRow';
 import UserModal from './UserModal';
+import { UserPlus, Search, Filter, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function UsersTable() {
   const { users, loading, error, deleteUser, reactivateUser, refreshUsers } = useUsers();
@@ -10,6 +11,7 @@ export default function UsersTable() {
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUserId, setDeletingUserId] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const handleAddUser = () => {
     setEditingUser(null);
@@ -27,241 +29,139 @@ export default function UsersTable() {
   };
 
   const handleSuccess = () => {
-    // Atualiza lista após criar/editar
     refreshUsers(showInactive);
   };
 
   const handleDeleteUser = async (userId, isActive) => {
-    if (isActive) {
-      // Desativar
-      if (!window.confirm('Tem certeza que deseja desativar este usuário? Ele não poderá mais fazer login.')) {
-        return;
-      }
+    const action = isActive ? 'desativar' : 'reativar';
+    if (!window.confirm(`Tem certeza que deseja ${action} este usuário?`)) return;
 
-      setDeletingUserId(userId);
-      const result = await deleteUser(userId);
-      
-      if (result.success) {
-        console.log('✅ Usuário desativado com sucesso');
-      } else {
-        alert(result.error || 'Erro ao desativar usuário');
-      }
-      
-      setDeletingUserId(null);
-    } else {
-      // Reativar
-      if (!window.confirm('Deseja reativar este usuário? Ele poderá fazer login novamente.')) {
-        return;
-      }
-
-      setDeletingUserId(userId);
-      const result = await reactivateUser(userId);
-      
-      if (result.success) {
-        console.log('✅ Usuário reativado com sucesso');
-      } else {
-        alert(result.error || 'Erro ao reativar usuário');
-      }
-      
-      setDeletingUserId(null);
-    }
+    setDeletingUserId(userId);
+    const result = isActive ? await deleteUser(userId) : await reactivateUser(userId);
+    
+    if (!result.success) alert(result.error || `Erro ao ${action} usuário`);
+    setDeletingUserId(null);
   };
 
-  const handleToggleInactive = async () => {
-    setShowInactive(!showInactive);
-    await refreshUsers(!showInactive);
-  };
+  const filteredUsers = users
+    .filter(u => showInactive || u.ativo)
+    .filter(u => 
+      u.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-  // Filtra usuários baseado no toggle
-  const filteredUsers = showInactive 
-    ? users 
-    : users.filter(u => u.ativo);
-
-  // Estado de loading
   if (loading && users.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Equipe</h2>
-          <p className="text-sm text-gray-500 mt-1">Gerenciamento de usuários e permissões</p>
-        </div>
-        
-        <div className="p-12 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <svg className="animate-spin h-10 w-10 text-blue-600" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-          <p className="text-gray-600">Carregando usuários...</p>
-        </div>
+      <div className="p-20 flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin" />
+        <p className="text-slate-500 font-bold text-sm uppercase tracking-widest">Sincronizando Colaboradores...</p>
       </div>
     );
   }
 
-  // Estado de erro
   if (error) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900">Equipe</h2>
-          <p className="text-sm text-gray-500 mt-1">Gerenciamento de usuários e permissões</p>
+      <div className="p-16 flex flex-col items-center text-center">
+        <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-6">
+          <AlertCircle className="w-8 h-8 text-red-500" />
         </div>
-        
-        <div className="p-12 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <p className="text-red-600 font-medium mb-2">Erro ao carregar usuários</p>
-          <p className="text-gray-600 text-sm mb-4">{error}</p>
-          <button 
-            onClick={() => refreshUsers(showInactive)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition inline-flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Tentar Novamente
-          </button>
-        </div>
+        <h3 className="text-xl font-bold text-slate-900 mb-2">Falha na Comunicação</h3>
+        <p className="text-slate-500 max-w-xs mb-8">{error}</p>
+        <button 
+          onClick={() => refreshUsers(showInactive)}
+          className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Tentar Novamente
+        </button>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Header da Tabela */}
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex justify-between items-center mb-3">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Equipe</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Gerenciamento de usuários e permissões • {filteredUsers.length} usuário{filteredUsers.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              {/* Toggle Inativos */}
-              <label className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border border-gray-200 hover:border-gray-300 transition">
-                <input
-                  type="checkbox"
-                  checked={showInactive}
-                  onChange={handleToggleInactive}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Mostrar inativos
-                </span>
-              </label>
-
-              {/* Botão Novo Usuário */}
-              <button
-                onClick={handleAddUser}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Novo Usuário
-              </button>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Filtros e Busca */}
+      <div className="flex flex-col sm:flex-row gap-4 px-4">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-600 transition-colors" />
+          <input 
+            type="text"
+            placeholder="Buscar por nome ou e-mail..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all"
+          />
         </div>
+        
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShowInactive(!showInactive)}
+            className={`flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm transition-all border ${
+              showInactive 
+                ? 'bg-brand-50 border-brand-200 text-brand-700' 
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            {showInactive ? 'Ocultar Inativos' : 'Ver Inativos'}
+          </button>
+          
+          <button 
+            onClick={handleAddUser}
+            className="flex items-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-2xl font-bold text-sm hover:bg-brand-700 transition-all shadow-lg shadow-brand-900/20"
+          >
+            <UserPlus className="w-4 h-4" />
+            Novo Usuário
+          </button>
+        </div>
+      </div>
 
-        {/* Tabela */}
-        {filteredUsers.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <TableHeader />
-              <tbody className="divide-y divide-gray-100">
-                {filteredUsers.map((user) => (
-                  <TableRow
-                    key={user.id_usuario}
-                    user={user}
-                    onEdit={() => handleEditUser(user)}
-                    onDelete={() => handleDeleteUser(user.id_usuario, user.ativo)}
-                    isDeleting={deletingUserId === user.id_usuario}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          // Sem usuários
-          <div className="p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-            <p className="text-gray-600 font-medium mb-2">
-              {showInactive ? 'Nenhum usuário inativo' : 'Nenhum usuário cadastrado'}
-            </p>
-            <p className="text-gray-500 text-sm mb-4">
-              {showInactive 
-                ? 'Todos os usuários estão ativos' 
-                : 'Comece adicionando o primeiro usuário'
-              }
-            </p>
-            {!showInactive && (
-              <button
-                onClick={handleAddUser}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition inline-flex items-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Adicionar Primeiro Usuário
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Estatísticas no Footer */}
-        {filteredUsers.length > 0 && (
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex gap-6">
-                <div>
-                  <span className="text-gray-500">Total: </span>
-                  <span className="font-semibold text-gray-900">{users.length}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Ativos: </span>
-                  <span className="font-semibold text-emerald-600">
-                    {users.filter(u => u.ativo).length}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Inativos: </span>
-                  <span className="font-semibold text-gray-600">
-                    {users.filter(u => !u.ativo).length}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex gap-4 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                  <span className="text-gray-600">Gestão: {users.filter(u => u.tipo === 'gestao' || u.role === 'gestao').length}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-gray-600">Analista: {users.filter(u => u.tipo === 'analista' || u.role === 'analista').length}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-600">Comercial: {users.filter(u => u.tipo === 'comercial' || u.role === 'comercial').length}</span>
-                </div>
-              </div>
-            </div>
+      {/* Tabela Refatorada */}
+      <div className="overflow-x-auto rounded-2xl border border-slate-100 mx-4">
+        <table className="w-full border-collapse">
+          <TableHeader />
+          <tbody className="bg-white">
+            {filteredUsers.map((user) => (
+              <TableRow
+                key={user.id_usuario}
+                user={user}
+                onEdit={() => handleEditUser(user)}
+                onDelete={() => handleDeleteUser(user.id_usuario, user.ativo)}
+                isDeleting={deletingUserId === user.id_usuario}
+              />
+            ))}
+          </tbody>
+        </table>
+        
+        {filteredUsers.length === 0 && (
+          <div className="py-20 text-center bg-slate-50/30">
+            <p className="text-slate-400 font-bold text-sm italic">Nenhum registro encontrado para os filtros aplicados.</p>
           </div>
         )}
       </div>
 
-      {/* Modal de Adicionar/Editar */}
+      {/* Footer / Resumo */}
+      <div className="flex items-center justify-between px-8 py-4 bg-slate-50/50 border-t border-slate-100 rounded-b-[32px]">
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Equipe</span>
+            <span className="text-lg font-black text-slate-900">{users.length}</span>
+          </div>
+          <div className="w-[1px] h-8 bg-slate-200" />
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Ativos</span>
+            <span className="text-lg font-black text-emerald-600">{users.filter(u => u.ativo).length}</span>
+          </div>
+        </div>
+        
+        <div className="hidden md:flex gap-4">
+          <div className="px-3 py-1.5 bg-white rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-brand-500" />
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter">Sincronizado com IAM</span>
+          </div>
+        </div>
+      </div>
+
       {showModal && (
         <UserModal
           user={editingUser}
@@ -269,6 +169,6 @@ export default function UsersTable() {
           onSuccess={handleSuccess}
         />
       )}
-    </>
+    </div>
   );
 }

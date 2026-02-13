@@ -1,53 +1,59 @@
 import React from 'react';
 import { GRANULARITY_LEVELS } from '../../utils/dataStructure';
+import { LayoutGrid, ListFilter, Hash } from 'lucide-react';
 
 export default function GranularitySelector({ currentLevel, onLevelChange }) {
   const getIcon = (iconType) => {
     switch(iconType) {
-      case 'all':
-        return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-          </svg>
-        );
-      case 'combo':
-        return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-          </svg>
-        );
-      case 'sku':
-        return (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
-          </svg>
-        );
-      default:
-        return null;
+      case 'all': return <LayoutGrid className="w-6 h-6" />;
+      case 'combo': return <ListFilter className="w-6 h-6" />;
+      case 'sku': return <Hash className="w-6 h-6" />;
+      default: return null;
     }
   };
 
   return (
-    <div className="grid grid-cols-3 gap-4">
-      {Object.values(GRANULARITY_LEVELS).map(level => (
-        <button
-          key={level.id}
-          onClick={() => onLevelChange(level.id)}
-          className={`p-5 rounded-lg border-2 transition text-left ${
-            currentLevel === level.id
-              ? 'border-blue-600 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
-          }`}
-        >
-          <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-3 ${
-            currentLevel === level.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
-          }`}>
-            {getIcon(level.icon)}
-          </div>
-          <div className="font-semibold text-gray-900 mb-1">{level.label}</div>
-          <p className="text-xs text-gray-600">{level.description}</p>
-        </button>
-      ))}
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      {Object.values(GRANULARITY_LEVELS).map(level => {
+        const isActive = currentLevel === level.id;
+        return (
+          <button
+            key={level.id}
+            onClick={() => onLevelChange(level.id)}
+            className={`
+              relative p-6 rounded-3xl transition-all duration-300 text-left border-2 flex flex-col items-start group
+              ${isActive
+                ? 'border-brand-600 bg-brand-50 shadow-lg shadow-brand-900/5'
+                : 'border-slate-100 bg-white hover:border-brand-200 hover:bg-slate-50'
+              }
+            `}
+          >
+            <div className={`
+              w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-all duration-300
+              ${isActive ? 'bg-brand-600 text-white shadow-lg shadow-brand-500/20' : 'bg-slate-50 text-slate-400 group-hover:scale-110'}
+            `}>
+              {getIcon(level.icon)}
+            </div>
+            
+            <div className="flex flex-col">
+              <span className={`text-base font-bold tracking-tight mb-1 ${isActive ? 'text-brand-700' : 'text-slate-900'}`}>
+                {level.label}
+              </span>
+              <p className={`text-[11px] font-medium leading-relaxed ${isActive ? 'text-brand-600' : 'text-slate-500'}`}>
+                {level.description}
+              </p>
+            </div>
+
+            {isActive && (
+              <div className="absolute top-4 right-4 w-5 h-5 bg-brand-600 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

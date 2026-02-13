@@ -4,41 +4,34 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Você pode adicionar cores customizadas aqui se precisar
-        primary: {
-          50: "#eff6ff",
-          100: "#dbeafe",
-          200: "#bfdbfe",
-          300: "#93c5fd",
-          400: "#60a5fa",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
-          800: "#1e40af",
-          900: "#1e3a8a",
+        brand: {
+          50: '#f0f7ff',
+          100: '#e0efff',
+          200: '#badfff',
+          300: '#7cc2ff',
+          400: '#35a1ff',
+          500: '#0981ff',
+          600: '#0066ff',
+          700: '#0052e0',
+          800: '#0044b8',
+          900: '#003a94',
+          950: '#00225c',
         },
+        slate: {
+          950: '#020617',
+        }
       },
       fontFamily: {
-        sans: [
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "Roboto",
-          "Oxygen",
-          "Ubuntu",
-          "Cantarell",
-          "Fira Sans",
-          "Droid Sans",
-          "Helvetica Neue",
-          "sans-serif",
-        ],
+        sans: ['Inter', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       boxShadow: {
-        sm: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-        DEFAULT:
-          "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-        md: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-        lg: "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.07)',
+        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        'inner-light': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.05)',
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
       },
     },
   },

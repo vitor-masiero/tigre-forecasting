@@ -1,24 +1,25 @@
 import React, { useState } from 'react';
 import { useUsers } from '../../hooks/useUsers';
+import { User, Mail, Shield, CheckCircle2, AlertCircle, RefreshCw, Key } from 'lucide-react';
 
 const USER_TYPES = {
   COMERCIAL: {
     id: 'comercial',
     label: 'Comercial',
     description: 'Acesso a previsões e relatórios comerciais',
-    color: 'bg-blue-100 text-blue-800'
+    color: 'border-blue-100 bg-blue-50 text-blue-700'
   },
   ANALISTA: {
     id: 'analista',
     label: 'Analista',
-    description: 'Acesso completo a análises e configurações avançadas',
-    color: 'bg-purple-100 text-purple-800'
+    description: 'Análises avançadas e parametrizações',
+    color: 'border-purple-100 bg-purple-50 text-purple-700'
   },
   GESTAO: {
     id: 'gestao',
     label: 'Gestão',
     description: 'Acesso administrativo completo',
-    color: 'bg-emerald-100 text-emerald-800'
+    color: 'border-emerald-100 bg-emerald-50 text-emerald-700'
   }
 };
 
@@ -28,7 +29,7 @@ export default function UserForm({ user, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     nome: user?.nome || '',
     email: user?.email || '',
-    tipo: user?.tipo || user?.role || 'comercial', // Trata tanto 'tipo' quanto 'role'
+    tipo: user?.tipo || user?.role || 'comercial',
     senha: '',
     ativo: user?.ativo !== undefined ? user.ativo : true
   });
@@ -40,47 +41,22 @@ export default function UserForm({ user, onClose, onSuccess }) {
 
   const validateForm = () => {
     const newErrors = {};
-    
-    // Nome
-    if (!formData.nome || formData.nome.trim().length < 3) {
-      newErrors.nome = 'Nome deve ter pelo menos 3 caracteres';
-    }
-    
-    // Email
+    if (!formData.nome || formData.nome.trim().length < 3) newErrors.nome = 'Nome muito curto';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email) {
-      newErrors.email = 'E-mail é obrigatório';
-    } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'E-mail inválido';
-    }
-    
-    // Senha (apenas para criação)
-    if (!user && (!formData.senha || formData.senha.length < 6)) {
-      newErrors.senha = 'Senha deve ter pelo menos 6 caracteres';
-    }
-    
+    if (!formData.email || !emailRegex.test(formData.email)) newErrors.email = 'E-mail inválido';
+    if (!user && (!formData.senha || formData.senha.length < 6)) newErrors.senha = 'Mínimo 6 caracteres';
     return newErrors;
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: type === 'checkbox' ? checked : value 
-    }));
-    
-    // Limpa erro do campo ao digitar
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
     setApiError('');
-    setSuccessMessage('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Valida formulário
     const newErrors = validateForm();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -88,122 +64,94 @@ export default function UserForm({ user, onClose, onSuccess }) {
     }
 
     setLoading(true);
-    setApiError('');
-    setSuccessMessage('');
-
     try {
-      let result;
-      
-      if (user) {
-        // Atualizar usuário existente
-        result = await updateUser(user.id_usuario, formData);
-      } else {
-        // Criar novo usuário
-        result = await addUser(formData);
-      }
-
+      const result = user ? await updateUser(user.id_usuario, formData) : await addUser(formData);
       if (result.success) {
-        setSuccessMessage(
-          user 
-            ? '✅ Usuário atualizado com sucesso!' 
-            : '✅ Usuário criado com sucesso!'
-        );
-        
-        // Aguarda 1.5s para mostrar mensagem e fecha
-        setTimeout(() => {
-          onSuccess?.();
-          onClose();
-        }, 1500);
+        setSuccessMessage('Operação realizada com sucesso!');
+        setTimeout(() => { onSuccess?.(); onClose(); }, 1000);
       } else {
-        setApiError(result.error || 'Erro ao salvar usuário');
+        setApiError(result.error || 'Erro ao salvar');
       }
-      
     } catch (error) {
-      console.error('Erro ao salvar:', error);
-      setApiError('Erro inesperado ao salvar usuário');
+      setApiError('Erro de conexão');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="p-6 space-y-6">
-      {/* Mensagem de SUCESSO */}
-      {successMessage && (
-        <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded animate-pulse">
-          <div className="flex items-center">
-            <svg className="w-5 h-5 text-emerald-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            <p className="text-sm font-medium text-emerald-800">{successMessage}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Mensagem de ERRO da API */}
+    <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in duration-500">
       {apiError && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
-          <div className="flex items-center">
-            <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            <p className="text-sm text-red-800">{apiError}</p>
-          </div>
+        <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500" />
+          <p className="text-sm text-red-800 font-bold">{apiError}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-6">
-        {/* Nome */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nome Completo *
-          </label>
-          <input
-            type="text"
-            name="nome"
-            value={formData.nome}
-            onChange={handleChange}
-            className={`w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-              errors.nome ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="João Silva"
-            disabled={loading}
-          />
-          {errors.nome && <p className="text-red-500 text-sm mt-1">{errors.nome}</p>}
+      {successMessage && (
+        <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+          <p className="text-sm text-emerald-800 font-bold">{successMessage}</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Nome Completo</label>
+          <div className="relative group">
+            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-600 transition-colors" />
+            <input
+              name="nome"
+              value={formData.nome}
+              onChange={handleChange}
+              className={`w-full bg-slate-50 border ${errors.nome ? 'border-red-300' : 'border-slate-200'} rounded-2xl py-3.5 pl-12 pr-4 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all`}
+              placeholder="Ex: Pedro Alvares"
+            />
+          </div>
         </div>
 
-        {/* E-mail */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            E-mail *
-          </label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className={`w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-              errors.email ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="email@empresa.com"
-            disabled={loading}
-          />
-          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">E-mail Corporativo</label>
+          <div className="relative group">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-600 transition-colors" />
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className={`w-full bg-slate-50 border ${errors.email ? 'border-red-300' : 'border-slate-200'} rounded-2xl py-3.5 pl-12 pr-4 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all`}
+              placeholder="usuario@tigre.com"
+            />
+          </div>
         </div>
 
-        {/* Tipo de Usuário */}
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Tipo de Usuário *
-          </label>
-          <div className="grid grid-cols-3 gap-3">
+        {!user && (
+          <div className="sm:col-span-2 space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Senha Provisória</label>
+            <div className="relative group">
+              <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand-600 transition-colors" />
+              <input
+                type="password"
+                name="senha"
+                value={formData.senha}
+                onChange={handleChange}
+                className={`w-full bg-slate-50 border ${errors.senha ? 'border-red-300' : 'border-slate-200'} rounded-2xl py-3.5 pl-12 pr-4 text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all`}
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="sm:col-span-2 space-y-4">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">Nível de Acesso</label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {Object.values(USER_TYPES).map(type => (
-              <label
+              <label 
                 key={type.id}
-                className={`relative flex cursor-pointer rounded-lg border-2 p-4 transition ${
-                  formData.tipo === type.id
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                className={`relative cursor-pointer border-2 rounded-[20px] p-4 transition-all duration-300 ${
+                  formData.tipo === type.id 
+                    ? 'border-brand-600 bg-brand-50/50 shadow-sm' 
+                    : 'border-slate-100 hover:border-brand-200 hover:bg-slate-50'
                 }`}
               >
                 <input
@@ -213,103 +161,58 @@ export default function UserForm({ user, onClose, onSuccess }) {
                   checked={formData.tipo === type.id}
                   onChange={handleChange}
                   className="sr-only"
-                  disabled={loading}
                 />
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-900 mb-1">{type.label}</div>
-                  <p className="text-xs text-gray-600">{type.description}</p>
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-black uppercase tracking-wider ${formData.tipo === type.id ? 'text-brand-700' : 'text-slate-900'}`}>
+                      {type.label}
+                    </span>
+                    {formData.tipo === type.id && <CheckCircle2 className="w-4 h-4 text-brand-600" />}
+                  </div>
+                  <p className="text-[10px] font-medium text-slate-500 leading-relaxed">
+                    {type.description}
+                  </p>
                 </div>
-                {formData.tipo === type.id && (
-                  <svg className="absolute top-2 right-2 w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                )}
               </label>
             ))}
           </div>
         </div>
 
-        {/* Senha (apenas na criação) */}
-        {!user && (
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Senha *
-            </label>
-            <input
-              type="password"
-              name="senha"
-              value={formData.senha}
-              onChange={handleChange}
-              className={`w-full border rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-                errors.senha ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="Mínimo 6 caracteres"
-              disabled={loading}
-            />
-            {errors.senha && <p className="text-red-500 text-sm mt-1">{errors.senha}</p>}
-          </div>
-        )}
-
-        {/* Status Ativo */}
-        <div className="col-span-2">
-          <label className="flex items-center gap-3 cursor-pointer p-4 rounded-lg border-2 border-gray-200 hover:border-gray-300 transition">
-            <input
-              type="checkbox"
-              name="ativo"
-              checked={formData.ativo}
-              onChange={handleChange}
-              className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              disabled={loading}
-            />
-            <div className="flex-1">
-              <span className="text-sm font-semibold text-gray-900">Usuário ativo</span>
-              <p className="text-xs text-gray-600 mt-1">
-                Usuários inativos não podem fazer login no sistema
-              </p>
+        <div className="sm:col-span-2">
+          <label className="flex items-center gap-3 cursor-pointer group bg-slate-50/50 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors">
+            <div className="relative">
+              <input
+                type="checkbox"
+                name="ativo"
+                checked={formData.ativo}
+                onChange={handleChange}
+                className="sr-only"
+              />
+              <div className={`w-10 h-6 rounded-full transition-colors ${formData.ativo ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+              <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.ativo ? 'translate-x-4' : ''}`} />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-slate-900">Conta Ativa</span>
+              <p className="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">Permitir acesso aos módulos da plataforma</p>
             </div>
           </label>
         </div>
       </div>
 
-      {/* Card de Permissões */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          Tipo de Usuário: {USER_TYPES[formData.tipo.toUpperCase()]?.label}
-        </h3>
-        <p className="text-sm text-blue-800">
-          {USER_TYPES[formData.tipo.toUpperCase()]?.description}
-        </p>
-      </div>
-
-      {/* Botões */}
-      <div className="flex gap-3 pt-4 border-t border-gray-200">
+      <div className="flex gap-4 pt-6 border-t border-slate-100">
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-900 px-6 py-2.5 rounded-lg transition font-medium disabled:opacity-50"
-          disabled={loading}
+          className="flex-1 px-6 py-4 rounded-2xl font-bold text-slate-500 hover:bg-slate-100 transition-all"
         >
-          Cancelar
+          Descartar
         </button>
         <button
           type="submit"
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           disabled={loading}
+          className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 py-4 rounded-2xl shadow-lg shadow-brand-900/20 transition-all flex items-center justify-center gap-2 active:scale-95"
         >
-          {loading ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Salvando...
-            </>
-          ) : (
-            user ? 'Atualizar Usuário' : 'Criar Usuário'
-          )}
+          {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : 'Confirmar Registro'}
         </button>
       </div>
     </form>
