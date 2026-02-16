@@ -56,14 +56,7 @@ export default function Sidebar({ currentPage, setCurrentPage }) {
         />
       </div>
 
-      <div className="p-4 mt-auto border-t border-slate-800/50">
-        <div className="bg-gradient-to-br from-brand-600 to-brand-800 rounded-2xl p-4 shadow-lg shadow-brand-900/20">
-          <p className="text-white text-xs font-semibold mb-1">Versão Enterprise</p>
-          <p className="text-brand-100 text-[10px] leading-relaxed">
-            Sua organização está utilizando o módulo avançado de forecasting.
-          </p>
-        </div>
-      </div>
+  
     </div>
   );
 }

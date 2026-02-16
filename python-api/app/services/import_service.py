@@ -364,19 +364,6 @@ class ImportService:
                 if '/' in col_str or any(mes in col_str for mes in meses_pt + meses_en):
                     date_cols.append(col)
         
-        print(f"🔍 Identificadas {len(id_cols)} colunas de ID e {len(date_cols)} colunas de datas")
-        
-        # 2. Mapeia nomes das colunas
-        rename_map = {}
-        for col in id_cols:
-            col_lower = str(col).lower()
-            if 'sku' in col_lower or 'produto' in col_lower or 'codigo' in col_lower or 'código' in col_lower:
-                rename_map[col] = 'cdproduto'
-            elif 'familia' in col_lower or 'linha' in col_lower:
-                rename_map[col] = 'cdlinha'
-            elif 'processo' in col_lower:
-                rename_map[col] = 'cdprocesso'
-        
         df = df.rename(columns=rename_map)
         
         # 3. Converte formato wide para long

@@ -5,135 +5,120 @@ from app.repository.query_repository import QueryRepository
 from app.schemas.forecasting import ForecastRequest, ForecastRunResponse
 from app.services.classification_service import ClassificationService
 from app.services.redirect_service import RedirectService
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import logging
+import pandas as pd
+import numpy as np
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class ProphetController:
     @router.get("/outliers")
     def get_data(db: Session = Depends(get_db)):
-        df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
-
-        return "OK", df_processed.to_dict(orient="records")
+        try:
+            df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
+            df_processed = df_processed.replace({np.nan: None})
+            return "OK", df_processed.to_dict(orient="records")
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao processar dados de outliers: {str(e)}"
+            )
 
     @router.get("/previsoes")
     def get_previsoes(db: Session = Depends(get_db)):
-        df_previsoes = QueryRepository.get_previsoes_data()
-        df_previsoes = df_previsoes.rename(columns={"num_wmape": "SKU/Tipo"})
-        return df_previsoes.to_dict(orient="records")
+        """
+        Endpoint para listar todas as previsões salvas no banco de dados.
+        """
+        try:
+            df_previsoes = QueryRepository.get_previsoes_data()
+            if df_previsoes.empty:
+                return []
+            
+            df_previsoes = df_previsoes.rename(columns={"num_wmape": "SKU/Tipo"})
+            df_previsoes = df_previsoes.replace({np.nan: None})
+            return df_previsoes.to_dict(orient="records")
+        except Exception as e:
+            logger.error(f"Erro ao buscar previsões: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Não foi possível recuperar a lista de previsões. Motivo: {str(e)}"
+            )
 
     @router.post("/predict", response_model=ForecastRunResponse)
     def predict(payload: ForecastRequest, db: Session = Depends(get_db)):
         """
-
-
-                Endpoint principal para fazer previsões
-
-                FUNCIONALIDADES:
-
-                1. Previsão Individual (aggregation_type="sku"):
-                   - Com modelo especificado: usa o modelo especificado
-                   - Sem modelo especificado: redirecionamento automático por ABC
-                     * Classe A -> Prophet
-                     * Classe B -> ARIMA
-                     * Classe C -> XGBoost
-
-                2. Previsões Agregadas (familia, processo, abc, all):
-                   - Sempre requer modelo especificado manualmente
-                   - Não faz redirecionamento automático por ABC
-                   - Padrão: Prophet se não especificado
-
-                EXEMPLOS DE USO:
-
-                # Previsão individual com redirecionamento ABC automático
-                {
-                    "aggregation_type": "sku",
-                    "sku": "PROD123",
-                    "periods": 12
-                    # model não especificado -> usa ABC
-                }
-
-                # Previsão individual com modelo específico
-                {
-                    "aggreg
-
-        ation_type": "sku",
-                    "sku": "PROD123",
-                    "model": "ARIMA",
-                    "periods": 12
-                }
-
-                # Previsão agregada por família com Prophet
-                {
-                    "aggregation_type": "familia",
-                    "familia": "LINHA_A",
-                    "model": "Prophet",
-                    "periods": 12
-                }
-
-                # Previsão agregada por processo com XGBoost
-                {
-                    "aggregation_type": "processo",
-                    "processo": "PROC_X",
-                    "model": "XGBoost",
-                    "periods": 12
-                }
-
-                # Previsão agregada por classe ABC com ARIMA
-                {
-                    "aggregation_type": "abc",
-                    "abc_class": "A",
-                    "model": "ARIMA",
-                    "periods": 12
-                }
-
-                # Previsão total (todos os produtos)
-                {
-                    "aggregation_type": "all",
-                    "model": "Prophet",
-                    "periods": 12
-                }
+        Endpoint principal para fazer previsões.
+        
+        Realiza previsões individuais por SKU ou agregadas por Família, Processo, ABC ou Total.
+        O sistema seleciona automaticamente o melhor modelo baseado na curva ABC se não for especificado.
         """
         try:
-            df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
-            df_classified = ClassificationService.classificar_abc_segmentado(
-                ClassificationService.somar_quantidade_por_segmento(df_processed)
-            )
+            # 1. Pré-processamento e Classificação
+            try:
+                skus = QueryRepository.get_all_skus()
+                if skus is None or skus.empty:
+                    raise ValueError("Nenhum dado de vendas encontrado na base de dados para gerar previsões.")
+                
+                df_processed = DataTransformer().preprocess(skus)
+                df_classified = ClassificationService.classificar_abc_segmentado(
+                    ClassificationService.somar_quantidade_por_segmento(df_processed)
+                )
+            except Exception as e:
+                logger.exception("Erro na preparação dos dados históricos")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Erro na preparação dos dados históricos: {str(e)}"
+                )
 
-            # Validações específicas por tipo de agregação
+            # 2. Validações de entrada
             if payload.aggregation_type == "sku" and not payload.sku:
                 raise HTTPException(
-                    status_code=400,
-                    detail="SKU deve ser fornecido para previsão individual (aggregation_type='sku')",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Para o tipo de agregação 'sku', o campo 'sku' é obrigatório."
                 )
 
             if payload.aggregation_type == "abc" and not payload.abc_class:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Classe ABC deve ser fornecida para agregação por ABC (abc_class='A', 'B' ou 'C')",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Para o tipo de agregação 'abc', a classe ABC ('A', 'B' ou 'C') deve ser informada."
                 )
 
-            # Validação: agregações devem ter modelo especificado (ou usa padrão)
-            if payload.aggregation_type != "sku" and not payload.model:
-                print(
-                    "⚠️ Modelo não especificado para agregação. Usando Prophet como padrão."
+            # 3. Execução da Previsão via RedirectService
+            try:
+                result = RedirectService.model_direction(
+                    df=df_classified,
+                    df_processed=df_processed,
+                    periods=payload.periods,
+                    sku=payload.sku,
+                    db=db,
+                    model=payload.model,
+                    aggregation_type=payload.aggregation_type,
+                    familia=payload.familia,
+                    processo=payload.processo,
+                    abc_class=payload.abc_class,
+                )
+            except ValueError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Erro de validação nos parâmetros da previsão: {str(e)}"
+                )
+            except NotImplementedError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                    detail=f"O modelo ou agregação solicitada ainda não está disponível: {str(e)}"
+                )
+            except Exception as e:
+                logger.exception("Erro na execução do modelo de previsão")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Erro interno durante a execução do modelo de previsão: {str(e)}"
                 )
 
-            result = RedirectService.model_direction(
-                df=df_classified,
-                df_processed=df_processed,
-                periods=payload.periods,
-                sku=payload.sku,
-                db=db,
-                model=payload.model,
-                aggregation_type=payload.aggregation_type,
-                familia=payload.familia,
-                processo=payload.processo,
-                abc_class=payload.abc_class,
-            )
-
+            # 4. Formatação do Resultado
             (
                 run_id,
                 forecast_df,
@@ -144,6 +129,13 @@ class ProphetController:
                 metrics,
             ) = result
 
+            if forecast_df is None or forecast_df.empty:
+                raise HTTPException(
+                    status_code=status.HTTP_204_NO_CONTENT,
+                    detail="O modelo executou com sucesso, mas não retornou dados de previsão."
+                )
+
+            forecast_df = forecast_df.replace({np.nan: None})
             preview = forecast_df.head(payload.preview_rows).to_dict(orient="records")
 
             return ForecastRunResponse(
@@ -157,43 +149,68 @@ class ProphetController:
                 metrics=metrics,
             )
 
-        except ValueError as e:
-            print(f"\n❌ Erro de validação: {str(e)}")
-            raise HTTPException(status_code=400, detail=str(e))
-        except NotImplementedError as e:
-            print(f"\n⚠️ Funcionalidade não implementada: {str(e)}")
-            raise HTTPException(status_code=501, detail=str(e))
+        except HTTPException:
+            raise
         except Exception as e:
-            print(f"\n❌ Erro inesperado: {str(e)}")
-            import traceback
-
-            traceback.print_exc()
-            raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
+            logger.exception("Erro crítico não tratado no endpoint /predict")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Ocorreu um erro inesperado ao processar sua solicitação de previsão: {str(e)}"
+            )
 
     @router.get("/classifier")
     def classify(db: Session = Depends(get_db)):
-        df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
-
-        df_classified = ClassificationService.classificar_abc_segmentado(
-            ClassificationService.somar_quantidade_por_segmento(df_processed)
-        )
-
-        return df_classified.to_dict(orient="records")
+        try:
+            df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
+            df_classified = ClassificationService.classificar_abc_segmentado(
+                ClassificationService.somar_quantidade_por_segmento(df_processed)
+            )
+            df_classified = df_classified.replace({np.nan: None})
+            return df_classified.to_dict(orient="records")
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao classificar curva ABC: {str(e)}"
+            )
 
     @router.get("/metrics")
     def get_model_metrics():
-        df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
-        df_clustered = DataClusterization.obter_metricas_todos_skus(df_processed)
-        return df_clustered
+        try:
+            df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
+            df_clustered = DataClusterization.obter_metricas_todos_skus(df_processed)
+            df_clustered = df_clustered.replace({np.nan: None})
+            return df_clustered.to_dict(orient="records")
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao buscar métricas globais: {str(e)}"
+            )
 
     @router.get("/metrics/{sku}")
     def get_sku_metrics(sku: str):
-        df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
-        df_clustered = DataClusterization.obter_metricas(df_processed, sku)
-        return df_clustered
+        try:
+            df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
+            df_clustered = DataClusterization.obter_metricas(df_processed, sku)
+            
+            # Se for um dicionário, precisamos tratar NaNs nele
+            if isinstance(df_clustered, dict):
+                return {k: (None if isinstance(v, float) and np.isnan(v) else v) for k, v in df_clustered.items()}
+            
+            return df_clustered
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao buscar métricas para o SKU {sku}: {str(e)}"
+            )
 
     @router.get("/clusters")
     def get_sku_clusters():
-        df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
-        df_metrics = DataClusterization.clusterizar_skus(df_processed)
-        return df_metrics
+        try:
+            df_processed = DataTransformer().preprocess(QueryRepository.get_all_skus())
+            df_metrics = DataClusterization.clusterizar_skus(df_processed)
+            return df_metrics
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Erro ao processar clusterização de SKUs: {str(e)}"
+            )

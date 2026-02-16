@@ -10,9 +10,6 @@ class AggregationService:
         has_duplicates = (duplicates > 1).any()
 
         if has_duplicates:
-            print("⚠️ Detectadas múltiplas entradas para o mesmo SKU na mesma data")
-            print("📊 Agregando por SKU + Data (somando quantidades duplicadas)")
-
             df_clean = (
                 df.groupby(["SKU", "Data", "Familia", "Processo"])["Quantidade"]
                 .sum()
@@ -43,9 +40,6 @@ class AggregationService:
                     f"Família(s) '{', '.join(familia)}' não encontrada(s) nos dados"
                 )
             filters_applied.append(f"Familia={', '.join(familia)}")
-            print(
-                f"🔍 Filtro aplicado: Familia = {', '.join(familia)} → {len(df_filtered)} registros"
-            )
 
         if processo:
             df_filtered = df_filtered[df_filtered["Processo"].isin(processo)]
@@ -54,9 +48,6 @@ class AggregationService:
                     f"Processo(s) '{', '.join(processo)}' não encontrado(s) nos dados (após filtros anteriores)"
                 )
             filters_applied.append(f"Processo={', '.join(processo)}")
-            print(
-                f"🔍 Filtro aplicado: Processo = {', '.join(processo)} → {len(df_filtered)} registros"
-            )
 
         if abc_class:
             if df_classified is None:
@@ -88,9 +79,6 @@ class AggregationService:
                 )
 
             filters_applied.append(f"ABC={', '.join(abc_class_upper)}")
-            print(
-                f"🔍 Filtro aplicado: ABC = {', '.join(abc_class_upper)} → {len(df_filtered)} registros"
-            )
 
         df_aggregated = df_filtered.groupby("Data")["Quantidade"].sum().reset_index()
 
@@ -148,10 +136,6 @@ class AggregationService:
 
         df_aggregated = df_filtered.groupby("Data")["Quantidade"].sum().reset_index()
 
-        print(
-            f"📊 Agregação concluída: {len(df_aggregated)} períodos, {info['skus_count']} SKUs"
-        )
-
         return df_aggregated, info
 
     @staticmethod
@@ -184,10 +168,6 @@ class AggregationService:
             }
 
         df_aggregated = df_filtered.groupby("Data")["Quantidade"].sum().reset_index()
-
-        print(
-            f"📊 Agregação concluída: {len(df_aggregated)} períodos, {info['skus_count']} SKUs"
-        )
 
         return df_aggregated, info
 
@@ -231,10 +211,6 @@ class AggregationService:
             "skus": skus_abc.tolist()[:10],
         }
 
-        print(
-            f"📊 Agregação ABC concluída: {len(df_aggregated)} períodos, {len(skus_abc)} SKUs da(s) classe(s) {', '.join(abc_class_upper)}"
-        )
-
         return df_aggregated, info
 
     @staticmethod
@@ -250,9 +226,5 @@ class AggregationService:
             "processos": df_clean["Processo"].unique().tolist(),
             "total_quantity": df_clean["Quantidade"].sum(),
         }
-
-        print(
-            f"📊 Agregação total concluída: {len(df_aggregated)} períodos, {info['skus_count']} SKUs"
-        )
 
         return df_aggregated, info

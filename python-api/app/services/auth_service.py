@@ -34,17 +34,14 @@ class AuthService:
         usuario = self.usuario_repo.get_by_email(login_data.email)
         
         if not usuario:
-            print(f"⚠️ Tentativa de login com email não cadastrado: {login_data.email}")
             raise ValueError("Email ou senha incorretos")
         
         # Verifica se usuário está ativo
         if not usuario.ativo:
-            print(f"⚠️ Tentativa de login com usuário inativo: {login_data.email}")
             raise ValueError("Usuário desativado. Entre em contato com o administrador")
         
         # Verifica senha
         if not PasswordHandler.verify_password(login_data.senha, usuario.senha_hash):
-            print(f"⚠️ Senha incorreta para: {login_data.email}")
             raise ValueError("Email ou senha incorretos")
         
         # Atualiza último acesso
@@ -58,8 +55,6 @@ class AuthService:
         }
         
         access_token = JWTHandler.create_access_token(token_data)
-        
-        print(f"✅ Login bem-sucedido: {usuario.email} (Role: {usuario.role})")
         
         return TokenResponse(
             access_token=access_token,
@@ -85,7 +80,6 @@ class AuthService:
         is_valid, message = PasswordHandler.validate_password_strength(usuario_data.senha)
         
         if not is_valid:
-            print(f"⚠️ Senha fraca rejeitada: {message}")
             raise ValueError(message)
         
         # Gera hash da senha
@@ -159,14 +153,12 @@ class AuthService:
         
         # Verifica senha atual
         if not PasswordHandler.verify_password(change_data.senha_atual, usuario.senha_hash):
-            print(f"⚠️ Senha atual incorreta para: {usuario.email}")
             return False, "Senha atual incorreta"
         
         # Valida força da nova senha
         is_valid, message = PasswordHandler.validate_password_strength(change_data.senha_nova)
         
         if not is_valid:
-            print(f"⚠️ Nova senha fraca rejeitada: {message}")
             return False, message
         
         # Gera hash da nova senha

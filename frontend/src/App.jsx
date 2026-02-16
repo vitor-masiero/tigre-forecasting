@@ -99,10 +99,14 @@ function AppContent({ currentPage, setCurrentPage, renderPage }) {
   // Se estiver autenticado, mostra o layout completo
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+      <div className="print:hidden">
+        <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+      </div>
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar setCurrentPage={setCurrentPage} />
-        <div className="flex-1 overflow-y-auto">
+        <div className="print:hidden">
+          <TopBar setCurrentPage={setCurrentPage} />
+        </div>
+        <div className="flex-1 overflow-y-auto print:overflow-visible">
           {renderPage()}
         </div>
       </div>

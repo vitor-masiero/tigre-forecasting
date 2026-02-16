@@ -38,9 +38,9 @@ export default function GerarPrevisao() {
   };
 
   return (
-    <div className="flex-1 bg-slate-50/50 overflow-y-auto">
-      <div className="max-w-5xl mx-auto px-8 py-12">
-        <div className="mb-12">
+    <div className="flex-1 bg-slate-50/50 overflow-y-auto print:bg-white print:overflow-visible">
+      <div className="max-w-[1440px] mx-auto px-8 py-12 print:p-0 print:max-w-none">
+        <div className="mb-12 print:hidden">
           <h1 className="text-3xl font-extrabold text-slate-950 tracking-tight mb-2">
             Configurar Nova Previsão
           </h1>
@@ -49,15 +49,15 @@ export default function GerarPrevisao() {
           </p>
         </div>
 
-        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-soft overflow-hidden">
+        <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-soft overflow-hidden print:border-none print:shadow-none print:rounded-none">
           <div className="flex">
             {/* Sidebar de Passos */}
-            <div className="w-72 bg-slate-50 border-r border-slate-200/60 p-8 hidden lg:block">
+            <div className="w-72 bg-slate-50 border-r border-slate-200/60 p-8 hidden lg:block print:hidden">
               <PageHeader currentStep={currentStep} totalSteps={4} />
             </div>
 
             {/* Conteúdo do Passo */}
-            <div className="flex-1 p-10 min-h-[600px]">
+            <div className="flex-1 p-10 min-h-[600px] print:p-0 print:min-h-0">
               <ConfigurationSteps
                 currentStep={currentStep}
                 formData={formData}

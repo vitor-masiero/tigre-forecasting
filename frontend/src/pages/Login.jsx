@@ -45,7 +45,8 @@ export default function Login() {
             <div className="p-3 bg-brand-600 rounded-2xl shadow-lg shadow-brand-600/30">
               <BarChart3 className="w-8 h-8 text-white" />
             </div>
-            <span className="text-2xl font-black text-white tracking-tighter">Tigre Vision</span>
+            <span className="text-2xl font-black text-white tracking-tighter">Tigre Vision Pro
+            </span>
           </div>
 
           <div className="max-w-md">
@@ -53,31 +54,11 @@ export default function Login() {
               Previsões de demanda com <span className="text-brand-400">Precisão Cirúrgica.</span>
             </h1>
             <p className="text-slate-400 text-lg font-medium leading-relaxed">
-              Utilizamos modelos avançados de XGBoost e Prophet para transformar seus dados históricos em vantagem competitiva real.
+              Utilizamos modelos avançados de Machine Learning para transformar seus dados históricos em vantagem competitiva real.
             </p>
           </div>
         </div>
 
-        <div className="relative z-20 grid grid-cols-2 gap-8">
-          <div className="flex items-start gap-4">
-            <div className="mt-1 p-1.5 bg-emerald-500/10 rounded-full">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-white font-bold text-sm">94.2% Precisão</p>
-              <p className="text-slate-500 text-xs mt-0.5">Média global de acerto nos modelos</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-4">
-            <div className="mt-1 p-1.5 bg-brand-500/10 rounded-full">
-              <Zap className="w-4 h-4 text-brand-400" />
-            </div>
-            <div>
-              <p className="text-white font-bold text-sm">Real-time Sync</p>
-              <p className="text-slate-500 text-xs mt-0.5">Atualização instantânea de métricas</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Lado Direito - Form de Login */}
@@ -122,7 +103,7 @@ export default function Login() {
             <div className="space-y-2">
               <div className="flex justify-between items-center ml-1">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Senha de Acesso</label>
-                <button type="button" className="text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors">Esqueceu a senha?</button>
+                
               </div>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-brand-600 text-slate-400">
@@ -138,6 +119,7 @@ export default function Login() {
                   disabled={loading}
                 />
               </div>
+              <button type="button" className="text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors">Esqueceu a senha?</button>
             </div>
 
             <button
@@ -172,7 +154,7 @@ export default function Login() {
         </div>
 
         <p className="absolute bottom-8 text-slate-400 text-xs font-medium">
-          © 2025 Tigre Forecast Enterprise. Todos os direitos reservados.
+          © 2025 Tigre Vision Pro. Todos os direitos reservados.
         </p>
       </div>
     </div>

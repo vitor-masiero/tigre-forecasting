@@ -99,12 +99,10 @@ class XGBoostService:
         df = df.merge(incc_monthly, on='year_month', how='left')
         df = df.merge(selic_monthly, on='year_month', how='left')
         
-        df['incc'] = df['incc'].fillna(method='ffill')
-        df['selic'] = df['selic'].fillna(method='ffill')
+        df['incc'] = df['incc'].ffill()
+        df['selic'] = df['selic'].ffill()
         
         df = df.drop('year_month', axis=1)
-        
-        print(f"✅ Variáveis externas adicionadas: INCC e SELIC")
         
         return df
     
@@ -116,10 +114,7 @@ class XGBoostService:
         features = self.db.query(FeatureMetadata).all()
         
         if not features:
-            print("⚠️ Nenhuma feature externa encontrada no banco")
             return df
-        
-        print(f"🔍 Encontradas {len(features)} features externas")
         
         for feature in features:
             try:
@@ -145,18 +140,16 @@ class XGBoostService:
                     df = df.merge(feature_monthly, on='year_month', how='left')
                     
                     # Preenche valores faltantes
-                    df[f"{feature.feature_name}_{col}"] = df[f"{feature.feature_name}_{col}"].fillna(method='ffill')
+                    df[f"{feature.feature_name}_{col}"] = df[f"{feature.feature_name}_{col}"].ffill()
                 
-                print(f"✅ Feature '{feature.feature_name}' adicionada com sucesso")
-                
-            except Exception as e:
-                print(f"⚠️ Erro ao adicionar feature '{feature.feature_name}': {str(e)}")
+            except Exception:
                 continue
         
         # Remove coluna auxiliar
         df = df.drop('year_month', axis=1)
         
         return df
+
     def get_future_custom_features(self, future_date, df_enriched):
         """Busca valores de features externas para uma data futura."""
         features = self.db.query(FeatureMetadata).all()
@@ -188,7 +181,7 @@ class XGBoostService:
                             else:
                                 feature_values[feature_col_name] = 0
                                 
-            except Exception as e:
+            except Exception:
                 # Em caso de erro, usa último valor histórico como fallback
                 for col in feature.columns:
                     if col != 'date':
@@ -210,7 +203,7 @@ class XGBoostService:
         bias_pct = (np.sum(y_pred - y_true) / np.sum(y_true)) * 100
         
         y_true_series = pd.Series(y_true)
-        naive_forecast = y_true_series.shift(1).fillna(method='bfill')
+        naive_forecast = y_true_series.shift(1).bfill()
         mae_model = np.mean(np.abs(y_true - y_pred))
         mae_naive = np.mean(np.abs(y_true - naive_forecast))
         fva = ((mae_naive - mae_model) / mae_naive) * 100 if mae_naive > 0 else 0
@@ -333,15 +326,12 @@ class XGBoostService:
             if df_filtered.empty:
                 raise ValueError(f"SKU '{sku}' não encontrado nos dados")
             
-            print(f"Previsão individual para SKU: {sku}")
         else:  
             df_filtered = df.copy()
-            print(f"Previsão agregada para {len(df_filtered)} registros")
 
         if outlier_method != 'none':
             df_filtered = self._remove_outliers(df_filtered, method=outlier_method, threshold=outlier_threshold)
             
-        print(f"📊 Dados preparados: {len(df_filtered)} pontos de dados")
 
         df_enriched = self.enrich_features(df_filtered, target='Quantidade', date_col='Data')
         df_enriched = self.add_external_regressors(df_enriched, date_col='Data')
@@ -380,10 +370,6 @@ class XGBoostService:
         
         feature_importance['importance_pct'] = (feature_importance['importance'] / feature_importance['importance'].sum() * 100).round(2)
         
-        print("\n📊 Top 10 Features mais importantes:")
-        for idx, row in feature_importance.head(10).iterrows():
-            print(f"  {row['feature']}: {row['importance_pct']}%")
-
         last_date = df_enriched['Data'].max()
         future_dates = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=periods, freq='MS')
         
@@ -539,17 +525,7 @@ class XGBoostService:
                 group_columns=['Familia', 'Processo', 'Classe_ABC'] if all(col in test_df.columns for col in ['Familia', 'Processo', 'Classe_ABC']) else None
             )
             
-            print("\n📊 Métricas Agregadas:")
-            print(f"Global WMAPE: {aggregated_metrics['global']['metrics_global']['WMAPE (%)']}%")
-            
-            for group_name, group_data in aggregated_metrics.items():
-                if group_name != 'global' and 'metrics_by_group' in group_data:
-                    print(f"\n{group_name.upper()}:")
-                    for item in group_data['metrics_by_group'][:5]:
-                        print(f"  {item[group_data['group_column']]}: WMAPE = {item['WMAPE (%)']}%")
-
         time_elapsed = time.obter_tempo()
-        print(f"✅ Previsão concluída em {time_elapsed:.2f}s")
         
         result_metrics = metrics if sku else aggregated_metrics
         result_metrics['feature_importance'] = feature_importance.to_dict('records')
@@ -562,14 +538,11 @@ class XGBoostService:
 
         run_id = self.saver.save_forecast_run("XGBoost", len(skus), None)
 
-        print(f"Iniciando as previsões para {len(skus)} SKUs")
-
         forecasts = {}
         failed_skus = []
 
         for i, sku in enumerate(skus, 1):
             try:
-                print(f"\n--- Processando SKU {i}/{len(skus)}: {sku} ---")
                 forecast = self.make_prediction(
                     df, sku=sku, periods=periods, 
                     outlier_method=outlier_method, 
@@ -577,18 +550,9 @@ class XGBoostService:
                 )
                 forecasts[sku] = forecast
 
-            except Exception as e:
-                failed_skus.append((sku, str(e)))
+            except Exception:
+                failed_skus.append((sku, "Erro desconhecido"))
                 continue
-
-        print("\nProcesso concluído!")
-        print(f"SKUs processados com sucesso: {len(forecasts)}")
-        print(f"SKUs com falha: {len(failed_skus)}")
-
-        if failed_skus:
-            print("\nSKUs com falha:")
-            for sku, error in failed_skus:
-                print(f"  - {sku}: {error}")
 
         return run_id, failed_skus
 
@@ -623,8 +587,8 @@ class XGBoostService:
             modified_z_scores = 0.6745 * (df_clean['Quantidade'] - median) / mad
             df_clean = df_clean[np.abs(modified_z_scores) < threshold]
         
-        print(f"🧹 Outliers removidos: {len(df) - len(df_clean)} pontos ({method})")
         return df_clean
+
     def apply_filters(self, df, familia=None, processo=None, abc_class=None):
         df_filtered = df.copy()
         

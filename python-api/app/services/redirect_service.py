@@ -97,7 +97,6 @@ class RedirectService:
                         .iloc[0]
                     )
                 else:
-                    print(f"⚠️ SKU '{sku}' não encontrado na classificação ABC")
                     classe_abc = None
 
                 if classe_abc == "A":

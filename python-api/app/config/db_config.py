@@ -87,7 +87,7 @@ class DatabaseConfig:
             )
             return df
         except Exception as error:
-            print(f"❌ Erro ao carregar dados: {error}")
+            print(f"Erro ao carregar dados: {error}")
             raise error
 
     @classmethod

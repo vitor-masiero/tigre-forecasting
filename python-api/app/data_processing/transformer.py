@@ -27,7 +27,7 @@ class DataTransformer:
         df = df.copy()
 
         # 1. Converte coluna periodo para datetime
-        df["Data"] = pd.to_datetime(df["periodo"], format="%Y-%m")
+        df["Data"] = pd.to_datetime(df["periodo"])
 
         # 2. Renomeia colunas para padrão
         df = df.rename(
