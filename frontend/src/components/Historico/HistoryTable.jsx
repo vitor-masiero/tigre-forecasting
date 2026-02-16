@@ -57,7 +57,7 @@ export default function HistoryTable() {
 
   const totalPages = Math.ceil(predictions.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentPredictions = predictions.slice(startIndex, endIndex = startIndex + itemsPerPage);
+  const currentPredictions = predictions.slice(startIndex, startIndex + itemsPerPage);
 
   const formatDate = (isoDate) => {
     const date = new Date(isoDate);

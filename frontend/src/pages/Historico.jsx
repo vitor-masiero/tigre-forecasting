@@ -15,8 +15,6 @@ export default function Historico() {
               Consulte e exporte os resultados de execuções anteriores
             </p>
           </div>
-          
-          
         </div>
 
         <div className="bg-white rounded-[32px] border border-slate-200/60 shadow-soft overflow-hidden">

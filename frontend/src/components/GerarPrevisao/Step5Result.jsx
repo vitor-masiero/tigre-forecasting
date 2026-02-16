@@ -134,6 +134,23 @@ export default function Step5Result({ jsonPredict }) {
     });
   }, [jsonPredict]);
 
+  const summaryMetrics = useMemo(() => {
+    if (!jsonPredict.preview) return null;
+    const values = jsonPredict.preview.map(p => p.yhat);
+    const total = values.reduce((a, b) => a + b, 0);
+    const avg = total / values.length;
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+
+    return {
+      total,
+      avg,
+      max,
+      min,
+      periods: values.length
+    };
+  }, [jsonPredict]);
+
   const influences = useMemo(() => {
     if (!jsonPredict.metrics?.feature_importance) return [];
 
@@ -174,23 +191,55 @@ export default function Step5Result({ jsonPredict }) {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 print:space-y-6">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 print:space-y-10 print:px-4 print:pb-12">
+      <style>
+        {`
+          @media print {
+            @page {
+              margin: 20mm 15mm;
+              size: auto;
+            }
+            body {
+              height: auto !important;
+              overflow: visible !important;
+            }
+            #root, .flex.h-screen, .flex-1.overflow-hidden, .flex-1.overflow-y-auto {
+              height: auto !important;
+              overflow: visible !important;
+              display: block !important;
+            }
+            .animate-in {
+              animation: none !important;
+            }
+          }
+        `}
+      </style>
+
       {/* Cabeçalho Exclusivo para Impressão */}
-      <div className="hidden print:flex justify-between items-end border-b-2 border-slate-900 pb-6 mb-8">
-        <div className="flex flex-col gap-4">
+      <div className="hidden print:flex justify-between items-end border-b-2 border-slate-900 pb-8 mb-4">
+        <div className="flex flex-col gap-5">
           <Logo variant="light" />
           <div>
-            <h1 className="text-2xl font-black text-slate-950 uppercase tracking-tight">Relatório de Previsão de Demanda</h1>
-            <p className="text-sm text-slate-500 font-bold">Emitido em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}</p>
+            <h1 className="text-3xl font-black text-slate-950 uppercase tracking-tight">Relatório de Previsão de Demanda</h1>
+            <div className="flex gap-4 mt-2">
+              <p className="text-sm text-slate-500 font-bold flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" />
+                {new Date().toLocaleDateString('pt-BR')}
+              </p>
+              <p className="text-sm text-slate-500 font-bold flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                {new Date().toLocaleTimeString('pt-BR')}
+              </p>
+            </div>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ID da Execução</p>
-          <p className="text-xs font-mono font-bold text-slate-900 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">{jsonPredict.run_id}</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ID do Processamento</p>
+          <p className="text-xs font-mono font-bold text-slate-900 bg-slate-100 px-4 py-1.5 rounded-xl border border-slate-200 shadow-sm">{jsonPredict.run_id}</p>
         </div>
       </div>
 
-      {/* Header com Status e Tempo (Oculto na impressão, substituído pelo cabeçalho acima) */}
+      {/* Header com Status e Tempo (Oculto na impressão) */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -217,65 +266,103 @@ export default function Step5Result({ jsonPredict }) {
         </div>
       </div>
 
-      {/* Grid de Métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4">
-        {/* WMAPE */}
-        <div className={`p-6 rounded-3xl border transition-all ${getWmapeColor(jsonPredict.metrics?.['WMAPE (%)'])} shadow-sm print:shadow-none print:border-slate-200 flex flex-col items-center text-center`}>
-          <Target className="w-5 h-5 mb-3 opacity-40 print:text-slate-400" />
-          <span className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Precisão (WMAPE)</span>
-          <span className="text-2xl font-black tracking-tighter">
-            {jsonPredict.metrics?.['WMAPE (%)']?.toFixed(1) || '0.0'}%
-          </span>
-        </div>
-
-        {/* Modelo */}
-        <div className="p-6 rounded-3xl border border-brand-100 bg-brand-50/30 text-brand-900 shadow-sm print:shadow-none print:border-slate-200 print:bg-white flex flex-col items-center text-center">
-          <Cpu className="w-5 h-5 mb-3 text-brand-400 print:text-slate-400" />
-          <span className="text-[10px] font-black uppercase tracking-widest opacity-70 text-brand-600 print:text-slate-500 mb-1">Algoritmo</span>
-          <p className="text-lg font-black tracking-tight leading-none mb-1">{jsonPredict.model_used}</p>
-          <span className="text-[10px] font-bold opacity-60 uppercase">
-            {jsonPredict.auto_selected ? 'Automático' : 'Manual'}
-          </span>
-        </div>
-
-        {/* SKUs / Agregação */}
-        <div className="p-6 rounded-3xl border border-purple-100 bg-purple-50/30 text-purple-900 shadow-sm print:shadow-none print:border-slate-200 print:bg-white flex flex-col items-center text-center">
-          <Layers className="w-5 h-5 mb-3 text-purple-400 print:text-slate-400" />
-          <span className="text-[10px] font-black uppercase tracking-widest opacity-70 text-purple-600 print:text-slate-500 mb-1">Escopo</span>
-          <p className="text-lg font-black tracking-tight leading-none mb-1 truncate w-full px-2">
-            {jsonPredict.sku || (jsonPredict.aggregation_info?.type === "all" ? "Todos os SKUs" : `${jsonPredict.aggregation_info?.skus_count || 0} SKUs`)}
-          </p>
-          <span className="text-[10px] font-bold opacity-60 uppercase">
-            {jsonPredict.aggregation_info?.type || 'Individual'}
-          </span>
-        </div>
-
-        {/* Tendência */}
-        <div className="p-6 rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-sm print:shadow-none flex flex-col items-center text-center">
-          <TrendingUp className="w-5 h-5 mb-3 text-slate-300 print:text-slate-400" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Direção</span>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg font-black tracking-tight leading-none">
-              {((jsonPredict.metrics?.trend?.last_value / jsonPredict.metrics?.trend?.first_value - 1) * 100).toFixed(1)}%
-            </span>
-            <ArrowUpRight className={`w-4 h-4 ${jsonPredict.metrics?.trend?.last_value > jsonPredict.metrics?.trend?.first_value ? 'text-emerald-500' : 'text-red-500 rotate-90'}`} />
+      {/* Seção de Métricas de Volume (Sumário Executivo) - EXCLUSIVO PRINT */}
+      <div className="hidden print:block space-y-4 print:break-inside-avoid">
+        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Resumo de Volume Projetado</h3>
+        <div className="grid grid-cols-4 gap-6">
+          <div className="p-6 rounded-3xl border border-slate-200 bg-slate-50/50">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Volume Total</span>
+            <p className="text-2xl font-black text-slate-900">
+              {new Intl.NumberFormat('pt-BR', { notation: 'compact' }).format(summaryMetrics.total)}
+            </p>
+            <span className="text-[10px] font-bold text-slate-500 uppercase">{summaryMetrics.periods} Meses</span>
           </div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Variação Projetada</span>
+          <div className="p-6 rounded-3xl border border-slate-200">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Média Mensal</span>
+            <p className="text-2xl font-black text-slate-900">
+              {new Intl.NumberFormat('pt-BR', { notation: 'compact' }).format(summaryMetrics.avg)}
+            </p>
+            <span className="text-[10px] font-bold text-slate-500 uppercase">Por período</span>
+          </div>
+          <div className="p-6 rounded-3xl border border-emerald-100 bg-emerald-50/30">
+            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 block">Pico Previsto</span>
+            <p className="text-2xl font-black text-emerald-700">
+              {new Intl.NumberFormat('pt-BR', { notation: 'compact' }).format(summaryMetrics.max)}
+            </p>
+            <span className="text-[10px] font-bold text-emerald-600/60 uppercase">Valor Máximo</span>
+          </div>
+          <div className="p-6 rounded-3xl border border-amber-100 bg-amber-50/30">
+            <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-2 block">Mínimo Previsto</span>
+            <p className="text-2xl font-black text-amber-700">
+              {new Intl.NumberFormat('pt-BR', { notation: 'compact' }).format(summaryMetrics.min)}
+            </p>
+            <span className="text-[10px] font-bold text-amber-600/60 uppercase">Valor Mínimo</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid de Métricas de Qualidade */}
+      <div className="space-y-4 print:break-inside-avoid">
+        <h3 className="hidden print:block text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Desempenho do Modelo</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4 print:gap-6">
+          {/* WMAPE */}
+          <div className={`p-6 rounded-3xl border transition-all ${getWmapeColor(jsonPredict.metrics?.['WMAPE (%)'])} shadow-sm print:shadow-none print:bg-white flex flex-col items-center text-center`}>
+            <Target className="w-5 h-5 mb-3 opacity-40 print:text-slate-400" />
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Precisão (WMAPE)</span>
+            <span className="text-2xl font-black tracking-tighter">
+              {jsonPredict.metrics?.['WMAPE (%)']?.toFixed(1) || '0.0'}%
+            </span>
+          </div>
+
+          {/* Modelo */}
+          <div className="p-6 rounded-3xl border border-brand-100 bg-brand-50/30 text-brand-900 shadow-sm print:shadow-none print:border-slate-200 print:bg-white flex flex-col items-center text-center">
+            <Cpu className="w-5 h-5 mb-3 text-brand-400 print:text-slate-400" />
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-70 text-brand-600 print:text-slate-500 mb-1">Algoritmo</span>
+            <p className="text-lg font-black tracking-tight leading-none mb-1">{jsonPredict.model_used}</p>
+            <span className="text-[10px] font-bold opacity-60 uppercase">
+              {jsonPredict.auto_selected ? 'Automático' : 'Manual'}
+            </span>
+          </div>
+
+          {/* SKUs / Agregação */}
+          <div className="p-6 rounded-3xl border border-purple-100 bg-purple-50/30 text-purple-900 shadow-sm print:shadow-none print:border-slate-200 print:bg-white flex flex-col items-center text-center">
+            <Layers className="w-5 h-5 mb-3 text-purple-400 print:text-slate-400" />
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-70 text-purple-600 print:text-slate-500 mb-1">Escopo</span>
+            <p className="text-lg font-black tracking-tight leading-none mb-1 truncate w-full px-2">
+              {jsonPredict.sku || (jsonPredict.aggregation_info?.type === "all" ? "Todos os SKUs" : `${jsonPredict.aggregation_info?.skus_count || 0} SKUs`)}
+            </p>
+            <span className="text-[10px] font-bold opacity-60 uppercase">
+              {jsonPredict.aggregation_info?.type || 'Individual'}
+            </span>
+          </div>
+
+          {/* Tendência */}
+          <div className="p-6 rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-sm print:shadow-none flex flex-col items-center text-center">
+            <TrendingUp className="w-5 h-5 mb-3 text-slate-300 print:text-slate-400" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Direção</span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-lg font-black tracking-tight leading-none">
+                {((jsonPredict.metrics?.trend?.last_value / jsonPredict.metrics?.trend?.first_value - 1) * 100).toFixed(1)}%
+              </span>
+              <ArrowUpRight className={`w-4 h-4 ${jsonPredict.metrics?.trend?.last_value > jsonPredict.metrics?.trend?.first_value ? 'text-emerald-500' : 'text-red-500 rotate-90'}`} />
+            </div>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Variação Projetada</span>
+          </div>
         </div>
       </div>
 
       {/* Área Principal - Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 print:grid-cols-1">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 print:grid-cols-1 print:gap-10">
         {/* Gráfico de Linha - 3/4 da largura */}
-        <div className="lg:col-span-3 bg-white rounded-[32px] p-8 border border-slate-200/60 shadow-soft print:shadow-none print:border-slate-100 print:rounded-none">
+        <div className="lg:col-span-3 bg-white rounded-[32px] p-8 border border-slate-200/60 shadow-soft print:shadow-none print:border-slate-200 print:rounded-[32px] print:break-inside-avoid">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h3 className="text-xl font-extrabold text-slate-900 tracking-tight">Projeção de Vendas</h3>
-              <p className="text-sm text-slate-500 font-medium">Volumes previstos para os próximos meses</p>
+              <p className="text-sm text-slate-500 font-medium">Volumes previstos para os próximos períodos</p>
             </div>
-            <div className="flex gap-6 print:hidden">
+            <div className="flex gap-6">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-brand-600 shadow-[0_0_8px_rgba(0,102,255,0.4)]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-brand-600 shadow-[0_0_8px_rgba(0,102,255,0.4)] print:shadow-none" />
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Previsto</span>
               </div>
               <div className="flex items-center gap-2">
@@ -285,7 +372,7 @@ export default function Step5Result({ jsonPredict }) {
             </div>
           </div>
 
-          <div className="h-[380px] w-full print:h-[300px]">
+          <div className="h-[380px] w-full print:h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={chartData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
                 <defs>
@@ -333,12 +420,12 @@ export default function Step5Result({ jsonPredict }) {
           </div>
         </div>
 
-        {/* Gráfico de Pizza - 1/4 da largura */}
-        <div className="bg-white rounded-[32px] p-6 border border-slate-200/60 shadow-soft flex flex-col print:shadow-none print:border-slate-100 print:rounded-none print:mt-8">
+        {/* Gráfico de Pizza - Influenciadores */}
+        <div className="bg-white rounded-[32px] p-6 border border-slate-200/60 shadow-soft flex flex-col print:shadow-none print:border-slate-200 print:rounded-[32px] print:break-inside-avoid">
           <h3 className="text-lg font-extrabold text-slate-900 tracking-tight mb-8">Influenciadores</h3>
           
-          <div className="flex-1 flex flex-col justify-center gap-10 print:gap-6">
-            <div className="h-52 w-full relative print:h-40">
+          <div className="flex-1 flex flex-col justify-center gap-10 print:gap-8">
+            <div className="h-52 w-full relative print:h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -364,11 +451,11 @@ export default function Step5Result({ jsonPredict }) {
 
             <div className="space-y-4 px-1">
               {influences.map((item, index) => (
-                <div key={index} className="flex flex-col gap-1.5 group">
+                <div key={index} className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                      <span className="text-[11px] font-bold text-slate-500 group-hover:text-slate-900 transition-colors truncate">
+                      <span className="text-[11px] font-bold text-slate-500 truncate">
                         {item.name}
                       </span>
                     </div>
@@ -387,21 +474,50 @@ export default function Step5Result({ jsonPredict }) {
         </div>
       </div>
 
+      {/* Tabela de Dados (EXCLUSIVO PRINT) */}
+      <div className="hidden print:block pt-4 break-inside-avoid print:page-break-before-always">
+        <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Detalhamento Mensal</h3>
+        <div className="rounded-3xl border border-slate-200 overflow-hidden bg-white">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Mês / Ano</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Volume Projetado</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Tendência Base</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {chartData.map((item, idx) => (
+                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-6 py-3.5 text-sm font-bold text-slate-700">{item.name}</td>
+                  <td className="px-6 py-3.5 text-sm font-black text-slate-900 text-right">
+                    {new Intl.NumberFormat('pt-BR').format(item.previsto.toFixed(2))}
+                  </td>
+                  <td className="px-6 py-3.5 text-sm font-medium text-slate-400 text-right italic">
+                    {new Intl.NumberFormat('pt-BR').format(item.tendencia.toFixed(2))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Filtros e Informações Adicionais */}
       {filtrosInfo && (
-        <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200/60 print:bg-white print:border-slate-100 print:rounded-none">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="bg-slate-50 rounded-[32px] p-8 border border-slate-200/60 print:bg-white print:border-slate-200 print:rounded-[32px] break-inside-avoid">
+          <div className="flex items-center gap-2 mb-6">
             <Filter className="w-4 h-4 text-slate-400" />
-            <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Parâmetros da Previsão</h4>
+            <h4 className="text-xs font-black text-slate-900 uppercase tracking-[0.2em]">Parâmetros da Simulação</h4>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 print:grid-cols-4">
             {filtrosInfo.map((filtro, idx) => (
               <div key={idx} className="flex flex-col">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
                   {filtro.label}
                 </span>
-                <span className="text-sm font-bold text-slate-700 leading-tight">
+                <span className="text-sm font-bold text-slate-700 leading-relaxed">
                   {filtro.value}
                 </span>
               </div>
@@ -410,7 +526,7 @@ export default function Step5Result({ jsonPredict }) {
         </div>
       )}
 
-      {/* Rodapé de Ações Rápidas */}
+      {/* Rodapé de Ações Rápidas (Oculto na impressão) */}
       <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 print:hidden">
         <button 
           onClick={() => window.location.reload()}
@@ -429,9 +545,12 @@ export default function Step5Result({ jsonPredict }) {
       </div>
 
       {/* Rodapé Exclusivo para Impressão */}
-      <div className="hidden print:flex justify-between items-center border-t border-slate-200 pt-6 mt-8">
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">© 2026 Tigre Forecasting - Confidencial</p>
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Página 1 de 1</p>
+      <div className="hidden print:flex justify-between items-center border-t border-slate-200 pt-8 mt-4">
+        <div className="flex flex-col gap-1">
+          <p className="text-[10px] text-slate-950 font-black uppercase tracking-widest">© 2026 Tigre S.A. - Confidencial</p>
+          <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Este documento contém informações estratégicas e proprietárias.</p>
+        </div>
+        <p className="text-[10px] text-slate-900 font-black uppercase tracking-widest bg-slate-100 px-4 py-1.5 rounded-full">Página 1 de 1</p>
       </div>
     </div>
   );
